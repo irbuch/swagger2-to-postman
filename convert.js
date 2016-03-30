@@ -222,7 +222,7 @@ var uuid = require('node-uuid'),
             return JSON.stringify(JSON.parse('{' + definition.join(',') + '}'), null, '   ');
         },
 
-        addOperationToFolder: function (path, method, operation, folderName, params) {
+        addOperationToFolder: function (path, method, operation, folderName, params, json) {
             if (this.options.tagFilter &&
                 operation.tags &&
                 operation.tags.indexOf(this.options.tagFilter) === -1) {
