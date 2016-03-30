@@ -342,6 +342,11 @@ var uuid = require('node-uuid'),
             if (pathItem.put) {
                 this.addOperationToFolder(path, 'PUT', pathItem.put, folderName, paramsForPathItem, json);
             }
+
+            if (pathItem.patch) {
+                this.addOperationToFolder(path, 'PATCH', pathItem.patch, folderName, paramsForPathItem, json);
+            }
+
             if (pathItem.post) {
                 this.addOperationToFolder(path, 'POST', pathItem.post, folderName, paramsForPathItem, json);
             }
