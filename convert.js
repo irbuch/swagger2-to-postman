@@ -334,7 +334,7 @@ var uuid = require('node-uuid'),
 
             // replace path variables {petId} with {{..}}
             if (path) {
-                path = path.replace('{', '{{').replace('}', '}}');
+                path = path.replace(/\{/g, '{{').replace(/\}/g, '}}');
             }
 
             if (pathItem.get) {
