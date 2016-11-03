@@ -32,6 +32,11 @@ var uuid = require('node-uuid'),
 
             this.options.includeQueryParams = typeof (this.options.includeQueryParams) == 'undefined' ?
                                                         true : this.options.includeQueryParams;
+
+            this.options.includeBodyTemplate = typeof (this.options.includeBodyTemplate) == 'undefined' ?
+                                                         false : this.options.includeBodyTemplate;
+
+            this.options.tagFilter = this.options.tagFilter || null;
         },
 
         setLogger: function (func) {
@@ -201,7 +206,62 @@ var uuid = require('node-uuid'),
             return tests;
         },
 
+        getDefaultValue: function (type) {
+            switch (type) {
+                case 'integer': {
+                    return 0;
+                }
+                case 'array': {
+                    return '[]';
+                }
+                case 'boolean': {
+                    return true;
+                }
+                case 'string': {
+                    return '""';
+                }
+                default: {
+                    return '{}';
+                }
+            }
+        },
+
+        getModelTemplate: function (definitions, schema, depth) {
+            if (depth > 1) {
+                return '{}';
+            }
+
+            var definition = [],
+                properties = schema.properties,
+                name,
+                defaultValue;
+
+            for (name in properties) {
+                defaultValue = '""';
+                if (properties[name].$ref) {
+                    var propertySchema = this.getSchemaFromRef(properties[name].$ref, definitions);
+                    defaultValue = this.getModelTemplate(definitions, propertySchema, depth + 1);
+                }
+                else {
+                    defaultValue = this.getDefaultValue(properties[name].type);
+                }
+
+                if (properties[name].readOnly !== true) {
+                    definition.push('"' + name + '" : ' + defaultValue );
+                }
+            }
+
+            return JSON.stringify(JSON.parse('{' + definition.join(',') + '}'), null, '   ');
+        },
+
         addOperationToFolder: function (path, method, operation, folderName, params, definitions) {
+            if (this.options.tagFilter &&
+                operation.tags &&
+                operation.tags.indexOf(this.options.tagFilter) === -1) {
+                // Operation has tags that don't match the filter
+                return;
+            }
+
             var root = this,
                 request = {
                     'id': uuid.v4(),
@@ -211,7 +271,8 @@ var uuid = require('node-uuid'),
                     'preRequestScript': '',
                     'method': 'GET',
                     'data': [],
-                    'dataMode': 'params',
+                    'dataMode': 'raw',
+                    "rawModeData": "",
                     'description': operation.description || '',
                     'descriptionFormat': 'html',
                     'time': '',
@@ -286,17 +347,23 @@ var uuid = require('node-uuid'),
 
                     else if (thisParams[param].in === 'body') {
                         request.dataMode = 'raw';
-                        if(thisParams[param].schema){
+                        if (this.options.includeBodyTemplate === true &&
+                            thisParams[param].schema){
                             var schema = thisParams[param].schema;
                             if(schema.$ref){
                                 schema = this.getSchemaFromRef(schema.$ref, definitions)
                             }
-                            if(schema && schema.example){
-                                request.data = JSON.stringify(schema.example,null,4);
+                            if(schema){
+                                if(schema.example){
+                                    request.rawModeData = JSON.stringify(schema.example,null,4);
+                                }
+                                else{
+                                    request.rawModeData = this.getModelTemplate(definitions, schema, 0);
+                                }
                             }
                         }
-                        if(!request.data || request.data === ""){
-                            request.data = thisParams[param].description;
+                        if(!request.rawModeData || request.rawModeData === ""){
+                            request.rawModeData = thisParams[param].description;
                         }
                     }
 
@@ -411,7 +478,7 @@ var uuid = require('node-uuid'),
         addFoldersToCollection: function () {
             var folderName;
             for (folderName in this.folders) {
-                if (this.folders.hasOwnProperty(folderName)) {
+                if (this.folders.hasOwnProperty(folderName) && this.folders[folderName].order.length > 0) {
                     this.collectionJson.folders.push(this.folders[folderName]);
                 }
             }
