@@ -53,4 +53,24 @@ describe('the converter', function () {
         expect(convertResult.collection.requests[0].url.indexOf(':ownerId') > 0);
         expect(convertResult.collection.requests[0].url.indexOf(':petId') > 0);
     });
+
+    it('should obey the tagFilter option', function () {
+        var options = {
+                tagFilter: 'FOO'
+            },
+            validoptions = {
+                tagFilter: 'SampleTag'
+            },
+            samplePath = path.join(__dirname, 'data', 'swagger2.json'),
+            swagger = require(samplePath),
+            converterWithOptions = new Swagger2Postman(options),
+            convertWithOptionsResult = converterWithOptions.convert(swagger),
+            converterWithValidOptions = new Swagger2Postman(validoptions),
+            convertWithValidOptionsResult = converterWithValidOptions.convert(swagger),
+            converterWithoutOptions = new Swagger2Postman(),
+            convertWithoutOptionsResult = converterWithoutOptions.convert(swagger);
+        expect(convertWithOptionsResult.collection.requests.length === 0);
+        expect(convertWithValidOptionsResult.collection.requests.length > 0);
+        expect(convertWithoutOptionsResult.collection.requests.length > 0);
+    });
 });
