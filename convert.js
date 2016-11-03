@@ -364,10 +364,13 @@ var uuid = require('node-uuid'),
                         if (this.options.includeBodyTemplate === true &&
                             thisParams[param].schema &&
                             thisConsumes.indexOf('application/json') > -1) {
+                            request.headers += 'Content-Type: application/json\n';
+
                             var schema = thisParams[param].schema;
                             if(schema.$ref){
                                 schema = this.getSchemaFromRef(schema.$ref, definitions)
                             }
+
                             if(schema){
                                 request.rawModeData = this.getModelTemplate(definitions, schema, 0);
                             }
