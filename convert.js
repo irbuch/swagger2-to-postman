@@ -355,15 +355,15 @@ var uuid = require('node-uuid'),
                             }
                             if(schema){
                                 if(schema.example){
-                                    request.data = JSON.stringify(schema.example,null,4);
+                                    request.rawModeData = JSON.stringify(schema.example,null,4);
                                 }
                                 else{
-                                    request.data = this.getModelTemplate(definitions, schema, 0);
+                                    request.rawModeData = this.getModelTemplate(definitions, schema, 0);
                                 }
                             }
                         }
-                        if(!request.data || request.data === ""){
-                            request.data = thisParams[param].description;
+                        if(!request.rawModeData || request.rawModeData === ""){
+                            request.rawModeData = thisParams[param].description;
                         }
                     }
 
