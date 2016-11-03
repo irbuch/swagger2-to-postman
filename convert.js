@@ -33,6 +33,9 @@ var uuid = require('node-uuid'),
             this.options.includeQueryParams = typeof (this.options.includeQueryParams) == 'undefined' ?
                                                         true : this.options.includeQueryParams;
 
+            this.options.includeOptionalQueryParams = typeof (this.options.includeOptionalQueryParams) == 'undefined' ?
+                                                         false : this.options.includeOptionalQueryParams;
+
             this.options.includeBodyTemplate = typeof (this.options.includeBodyTemplate) == 'undefined' ?
                                                          false : this.options.includeBodyTemplate;
 
@@ -334,11 +337,13 @@ var uuid = require('node-uuid'),
                 if (thisParams.hasOwnProperty(param) && thisParams[param]) {
                     this.logger('Processing param: ' + JSON.stringify(param));
                     if (thisParams[param].in === 'query' && this.options.includeQueryParams !== false) {
-                        if (!hasQueryParams) {
-                            hasQueryParams = true;
-                            request.url += '?';
+                        if (thisParams[param].required || this.options.includeOptionalQueryParams == true) {
+                            if (!hasQueryParams) {
+                                hasQueryParams = true;
+                                request.url += '?';
+                            }
+                            request.url += thisParams[param].name + '={{' + thisParams[param].name + '}}&';
                         }
-                        request.url += thisParams[param].name + '={{' + thisParams[param].name + '}}&';
                     }
 
                     else if (thisParams[param].in === 'header') {
