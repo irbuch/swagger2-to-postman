@@ -362,7 +362,8 @@ var uuid = require('node-uuid'),
                     else if (thisParams[param].in === 'body') {
                         request.dataMode = 'raw';
                         if (this.options.includeBodyTemplate === true &&
-                            thisParams[param].schema){
+                            thisParams[param].schema &&
+                            thisConsumes.indexOf('application/json') > -1) {
                             var schema = thisParams[param].schema;
                             if(schema.$ref){
                                 schema = this.getSchemaFromRef(schema.$ref, definitions)
