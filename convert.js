@@ -191,9 +191,12 @@ var uuid = require('node-uuid'),
         generateTestsFromSpec: function(status, response, definitions,url){
             var tests="";
             if(response && response.schema){
-                var schema = this.getSchemaFromRef(response.schema.$ref, definitions)
-                if(schema && schema.type){
+                var schema = response.schema
+                if (schema.$ref) {
+                    schema = this.getSchemaFromRef(response.schema.$ref, definitions)
+                }
 
+                if(schema && schema.type){
                     this.logger('Adding Test for: ' + url);
                     tests+='tests["Status code is '+status+'"] = responseCode.code === '+status+';\n';
                     tests+='if(responseCode.code === '+status+'){\n';
