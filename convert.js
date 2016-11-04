@@ -217,6 +217,9 @@ var uuid = require('node-uuid'),
                 case 'integer': {
                     return 0;
                 }
+                case 'number': {
+                    return 0.0;
+                }
                 case 'array': {
                     return '[]';
                 }
