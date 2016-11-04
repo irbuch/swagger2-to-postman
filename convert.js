@@ -210,10 +210,13 @@ var uuid = require('node-uuid'),
                         }
 
                         if (schema && schema.type) {
+                            var fullSchema = _.clone(schema)
+                            fullSchema['definitions'] = definitions
+
                             tests+='\n'
                             tests+='if (responseCode.code === ' + status + ') {\n';
                             tests+='\tvar data = JSON.parse(responseBody);\n';
-                            tests+='\tvar schema = ' + JSON.stringify(schema,null,4) + ';\n';
+                            tests+='\tvar schema = ' + JSON.stringify(fullSchema,null,4) + ';\n';
                             tests+='\ttests["Response Body respects JSON schema documentation"] = tv4.validate(data, schema);\n'
                             tests+='\tif(tests["Response Body respect JSON schema documentation"] === false){\n';
                             tests+='\t\tconsole.log(tv4.error);\n';
