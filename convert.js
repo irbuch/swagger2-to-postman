@@ -188,27 +188,43 @@ var uuid = require('node-uuid'),
             }
         },
 
-        generateTestsFromSpec: function(status, response, definitions,url){
-            var tests="";
-            if(response && response.schema){
-                var schema = response.schema
-                if (schema.$ref) {
-                    schema = this.getSchemaFromRef(response.schema.$ref, definitions)
-                }
+        generateTestsFromSpec: function(responses, definitions, url) {
+            var tests = "",
+                statusCodes = _.keys(responses);
 
-                if(schema && schema.type){
-                    this.logger('Adding Test for: ' + url);
-                    tests+='tests["Status code is '+status+'"] = responseCode.code === '+status+';\n';
-                    tests+='if(responseCode.code === '+status+'){\n';
-                    tests+="\tvar data = JSON.parse(responseBody);\n";
-                    tests+="\tvar schema="+JSON.stringify(schema,null,4)+";\n";
-                    tests+='\ttests["Response Body respect JSON schema documentation"] = tv4.validate(data, schema);\n'
-                    tests+='\tif(tests["Response Body respect JSON schema documentation"] === false){\n';
-                    tests+='\t\tconsole.log(tv4.error);\n';
-                    tests+="\t}\n";
-                    tests+="}\n";
-                }
+            if (statusCodes.length > 0) {
+                this.logger('Adding Test for: ' + url);
+
+                var statusCodesString = statusCodes.join();
+
+                tests += 'tests["Status code is expected"] = [' + statusCodesString + '].indexOf(responseCode.code) > -1;\n';
+
+                // set test in case of success
+                _.forEach(responses, (response,status) => {
+                    if (Number(status) >= 200 && Number(status) < 300 &&
+                        response && response.schema) {
+
+                        var schema = response.schema
+                        if (schema.$ref) {
+                            schema = this.getSchemaFromRef(response.schema.$ref, definitions)
+                        }
+
+                        if (schema && schema.type) {
+                            tests+='\n'
+                            tests+='if (responseCode.code === ' + status + ') {\n';
+                            tests+='\tvar data = JSON.parse(responseBody);\n';
+                            tests+='\tvar schema = ' + JSON.stringify(schema,null,4) + ';\n';
+                            tests+='\ttests["Response Body respects JSON schema documentation"] = tv4.validate(data, schema);\n'
+                            tests+='\tif(tests["Response Body respect JSON schema documentation"] === false){\n';
+                            tests+='\t\tconsole.log(tv4.error);\n';
+                            tests+='\t}\n';
+                            tests+='}\n';
+                        }
+                    }
+                });
+
             }
+
             return tests;
         },
 
@@ -409,12 +425,7 @@ var uuid = require('node-uuid'),
                 }
             }
 
-            // set test in case of success
-            _.forEach(thisResponses,(response,status) => {
-                if(Number(status) >= 200 && Number(status) < 300){
-                    request.tests=this.generateTestsFromSpec(status,response,definitions,request.url);
-                }
-            });
+            request.tests = this.generateTestsFromSpec(thisResponses, definitions, request.url);
 
             if (hasQueryParams && this.endsWith(request.url, '&')) {
                 request.url = request.url.slice(0, -1);
