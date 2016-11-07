@@ -24,7 +24,7 @@ var uuid = require('node-uuid'),
             this.basePath = '';
             this.collectionId = '';
             this.folders = {};
-            this.baseParams = {};
+            this.paramDefinitions = {};
             this.logger = function () {
             };
 
@@ -135,8 +135,7 @@ var uuid = require('node-uuid'),
                 numNewParams,
                 i,
                 parts,
-                lastPart,
-                getBaseParam;
+                lastPart;
 
             oldParams = oldParams || [];
             newParams = newParams || [];
@@ -150,8 +149,7 @@ var uuid = require('node-uuid'),
                     if (oldParams[i].$ref.indexOf('#/parameters') === 0) {
                         parts = oldParams[i].$ref.split('/');
                         lastPart = parts[parts.length - 1];
-                        getBaseParam = this.baseParams[lastPart];
-                        retVal[lastPart] = getBaseParam;
+                        retVal[lastPart] = this.paramDefinitions[lastPart];
                     }
                 }
                 else {
@@ -165,8 +163,7 @@ var uuid = require('node-uuid'),
                     if (newParams[i].$ref.indexOf('#/parameters') === 0) {
                         parts = newParams[i].$ref.split('/');
                         lastPart = parts[parts.length - 1];
-                        getBaseParam = this.baseParams[lastPart];
-                        retVal[lastPart] = getBaseParam;
+                        retVal[lastPart] = this.paramDefinitions[lastPart];
                     }
                 }
                 else {
@@ -492,21 +489,6 @@ var uuid = require('node-uuid'),
             }
         },
 
-        handleParams: function (params, level) {
-            if (!params) {
-                return;
-            }
-            if (level === 'collection') {
-                // base params
-                for (var param in params) {
-                    if (params.hasOwnProperty(param)) {
-                        this.logger('Adding collection param: ' + param);
-                        this.baseParams[param] = params[param];
-                    }
-                }
-            }
-        },
-
         addFoldersToCollection: function () {
             var folderName;
             for (folderName in this.folders) {
@@ -527,7 +509,7 @@ var uuid = require('node-uuid'),
 
             this.globalConsumes = json.consumes || [];
 
-            this.handleParams(json.parameters, 'collection');
+            this.paramDefinitions = json.parameters;
 
             this.handleInfo(json);
 
