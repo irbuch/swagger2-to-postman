@@ -26,6 +26,8 @@ var uuid = require('node-uuid'),
             this.folders = {};
             this.definitions = {};
             this.paramDefinitions = {};
+            this.securityDefinitions = {};
+            this.globalSecurity = [];
             this.logger = function () {
             };
 
@@ -286,8 +288,7 @@ var uuid = require('node-uuid'),
                 return;
             }
 
-            var root = this,
-                request = {
+            var request = {
                     'id': uuid.v4(),
                     'headers': '',
                     'url': '',
@@ -303,7 +304,7 @@ var uuid = require('node-uuid'),
                     'version': 2,
                     'responses': [],
                     'tests': '',
-                    'collectionId': root.collectionId,
+                    'collectionId': this.collectionId,
                     'synced': false
                 },
                 thisParams = this.mergeParamLists(paramsFromPathItem, operation.parameters),
@@ -311,8 +312,9 @@ var uuid = require('node-uuid'),
                 hasQueryParams = false,
                 param,
                 requestAttr,
-                thisConsumes = root.globalConsumes,
-                tempBasePath;
+                thisConsumes = this.globalConsumes,
+                tempBasePath,
+                thisSecurity = operation.security || this.globalSecurity;
 
             if (path.length > 0 && path[0] === '/') {
                 path = path.substring(1);
@@ -351,6 +353,29 @@ var uuid = require('node-uuid'),
             // eg. for GET requests
             if (thisConsumes.indexOf('application/x-www-form-urlencoded') > -1) {
                 request.dataMode = 'urlencoded';
+            }
+
+            // handle security
+            if (thisSecurity[0]) {
+                // Only consider the first defined security object.
+                // Swagger defines that there is a logical OR between the different security objects in the array -
+                // i.e. only one needs to/should be used at a time
+                var securityObject = thisSecurity[0];
+                for (securityRequirementName in securityObject) {
+                    if (securityObject.hasOwnProperty(securityRequirementName) &&
+                        securityObject[securityRequirementName] &&
+                        this.securityDefinitions[securityRequirementName]) {
+
+                        var scopes = securityObject[securityRequirementName];
+                        var securityDefinition = this.securityDefinitions[securityRequirementName];
+                        // TODO: support basic and apiKey security
+                        // TODO: Do we need to check the oauth2 flow type here?
+                        if (securityDefinition && securityDefinition.type === 'oauth2') {
+                            var tokenVarName = 'token_' + securityRequirementName + '_' + scopes.join('_');
+                            request.headers += 'Authorization: Bearer {{' + tokenVarName + '}}\n';
+                        }
+                    }
+                }
             }
 
             // set data and headers
@@ -492,6 +517,10 @@ var uuid = require('node-uuid'),
             this.collectionId = uuid.v4();
 
             this.globalConsumes = json.consumes || [];
+
+            this.securityDefinitions = json.securityDefinitions || {};
+
+            this.globalSecurity = json.security || [];
 
             this.definitions = json.definitions;
 
