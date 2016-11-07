@@ -412,7 +412,7 @@ var uuid = require('node-uuid'),
                         // TODO: support basic and apiKey security
                         // TODO: Do we need to check the oauth2 flow type here?
                         if (securityDefinition && securityDefinition.type === 'oauth2') {
-                            var tokenVarName = 'token_' + securityRequirementName + '_' + scopes.join('_');
+                            var tokenVarName = 'token_' + securityRequirementName;
                             request.headers += 'Authorization: Bearer {{' + tokenVarName + '}}\n';
                         }
                     }
