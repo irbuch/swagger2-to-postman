@@ -24,6 +24,7 @@ var uuid = require('node-uuid'),
             this.basePath = '';
             this.collectionId = '';
             this.folders = {};
+            this.definitions = {};
             this.paramDefinitions = {};
             this.logger = function () {
             };
@@ -174,18 +175,18 @@ var uuid = require('node-uuid'),
             return retVal;
         },
 
-        getSchemaFromRef: function(ref, definition) {
-            if(definition && ref){
+        getSchemaFromRef: function(ref) {
+            if(ref){
                 if(ref.indexOf("#/definitions/")>-1){
                     var definitionKey = ref.split("/").pop();
                     if(definitionKey){
-                        return definition[definitionKey];
+                        return this.definitions[definitionKey];
                     }
                 }
             }
         },
 
-        generateTestsFromSpec: function(responses, definitions, url) {
+        generateTestsFromSpec: function(responses, url) {
             var tests = "",
                 statusCodes = _.keys(responses);
 
@@ -203,12 +204,12 @@ var uuid = require('node-uuid'),
 
                         var schema = response.schema
                         if (schema.$ref) {
-                            schema = this.getSchemaFromRef(response.schema.$ref, definitions)
+                            schema = this.getSchemaFromRef(response.schema.$ref)
                         }
 
                         if (schema && schema.type) {
                             var fullSchema = _.clone(schema)
-                            fullSchema['definitions'] = definitions
+                            fullSchema['definitions'] = this.definitions
 
                             tests+='\n'
                             tests+='if (responseCode.code === ' + status + ') {\n';
@@ -251,7 +252,7 @@ var uuid = require('node-uuid'),
             }
         },
 
-        getModelTemplate: function (definitions, schema, depth) {
+        getModelTemplate: function (schema, depth) {
             if (schema.example) {
                 return JSON.stringify(schema.example,null,4);
             }
@@ -266,10 +267,10 @@ var uuid = require('node-uuid'),
                     var propertySchema = properties[name];
                     // TODO: Check for circular refs
                     if (propertySchema.$ref) {
-                        propertySchema = this.getSchemaFromRef(propertySchema.$ref, definitions);
+                        propertySchema = this.getSchemaFromRef(propertySchema.$ref);
                     }
                     if (!propertySchema.readOnly) {
-                        value = this.getModelTemplate(definitions, propertySchema, depth + 1);
+                        value = this.getModelTemplate(propertySchema, depth + 1);
                         definition.push('"' + name + '" : ' + value );
                     }
                 }
@@ -278,9 +279,9 @@ var uuid = require('node-uuid'),
                 var itemSchema = schema.items
                 // TODO: Check for circular refs
                 if (itemSchema.$ref) {
-                    itemSchema = this.getSchemaFromRef(itemSchema.$ref, definitions);
+                    itemSchema = this.getSchemaFromRef(itemSchema.$ref);
                 }
-                value = this.getModelTemplate(definitions, itemSchema, depth + 1);
+                value = this.getModelTemplate(itemSchema, depth + 1);
                 return JSON.stringify(JSON.parse('[' + value + ']'), null, '   ');
             }
             else {
@@ -288,7 +289,7 @@ var uuid = require('node-uuid'),
             }
         },
 
-        addOperationToFolder: function (path, method, operation, folderName, paramsFromPathItem, definitions) {
+        addOperationToFolder: function (path, method, operation, folderName, paramsFromPathItem) {
             if (this.options.tagFilter &&
                 operation.tags &&
                 operation.tags.indexOf(this.options.tagFilter) === -1) {
@@ -390,11 +391,11 @@ var uuid = require('node-uuid'),
 
                             var schema = thisParams[param].schema;
                             if(schema.$ref){
-                                schema = this.getSchemaFromRef(schema.$ref, definitions)
+                                schema = this.getSchemaFromRef(schema.$ref)
                             }
 
                             if(schema){
-                                request.rawModeData = this.getModelTemplate(definitions, schema, 0);
+                                request.rawModeData = this.getModelTemplate(schema, 0);
                             }
                         }
                         if(!request.rawModeData || request.rawModeData === ""){
@@ -425,7 +426,7 @@ var uuid = require('node-uuid'),
                 }
             }
 
-            request.tests = this.generateTestsFromSpec(thisResponses, definitions, request.url);
+            request.tests = this.generateTestsFromSpec(thisResponses, request.url);
 
             if (hasQueryParams && this.endsWith(request.url, '&')) {
                 request.url = request.url.slice(0, -1);
@@ -440,7 +441,7 @@ var uuid = require('node-uuid'),
             }
         },
 
-        addPathItemToFolder: function (path, pathItem, folderName, definitions) {
+        addPathItemToFolder: function (path, pathItem, folderName) {
             if (pathItem.$ref) {
                 this.logger('Error - cannot handle $ref attributes');
                 return;
@@ -466,8 +467,7 @@ var uuid = require('node-uuid'),
                         verb.toUpperCase(),
                         pathItem[verb],
                         folderName,
-                        pathItem.parameters,
-                        definitions
+                        pathItem.parameters
                     );
                 }
             }
@@ -475,7 +475,6 @@ var uuid = require('node-uuid'),
 
         handlePaths: function (json) {
             var paths = json.paths,
-                definitions = json.definitions,
                 path,
                 folderName;
 
@@ -484,7 +483,7 @@ var uuid = require('node-uuid'),
                 if (paths.hasOwnProperty(path)) {
                     folderName = this.getFolderNameForPath(path);
                     this.logger('Adding path item. path = ' + path + '   folder = ' + folderName);
-                    this.addPathItemToFolder(path, paths[path], folderName, definitions);
+                    this.addPathItemToFolder(path, paths[path], folderName);
                 }
             }
         },
@@ -508,6 +507,8 @@ var uuid = require('node-uuid'),
             this.collectionId = uuid.v4();
 
             this.globalConsumes = json.consumes || [];
+
+            this.definitions = json.definitions;
 
             this.paramDefinitions = json.parameters;
 
