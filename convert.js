@@ -129,7 +129,7 @@ var uuid = require('node-uuid'),
             this.collectionJson.description = json.info.description;
         },
 
-        getParamsForPathItem: function (oldParams, newParams) {
+        mergeParamLists: function (oldParams, newParams) {
             var retVal = {},
                 numOldParams,
                 numNewParams,
@@ -291,7 +291,7 @@ var uuid = require('node-uuid'),
             }
         },
 
-        addOperationToFolder: function (path, method, operation, folderName, params, definitions) {
+        addOperationToFolder: function (path, method, operation, folderName, paramsFromPathItem, definitions) {
             if (this.options.tagFilter &&
                 operation.tags &&
                 operation.tags.indexOf(this.options.tagFilter) === -1) {
@@ -319,7 +319,7 @@ var uuid = require('node-uuid'),
                     'collectionId': root.collectionId,
                     'synced': false
                 },
-                thisParams = this.getParamsForPathItem(params, operation.parameters),
+                thisParams = this.mergeParamLists(paramsFromPathItem, operation.parameters),
                 thisResponses = operation.responses,
                 hasQueryParams = false,
                 param,
@@ -449,8 +449,7 @@ var uuid = require('node-uuid'),
                 return;
             }
 
-            var paramsForPathItem = this.getParamsForPathItem(this.baseParams, pathItem.parameters),
-                acceptedPostmanVerbs = [
+            var acceptedPostmanVerbs = [
                     'get', 'put', 'post', 'patch', 'delete', 'copy', 'head', 'options',
                     'link', 'unlink', 'purge', 'lock', 'unlock', 'propfind', 'view'],
                 numVerbs = acceptedPostmanVerbs.length,
@@ -470,7 +469,7 @@ var uuid = require('node-uuid'),
                         verb.toUpperCase(),
                         pathItem[verb],
                         folderName,
-                        paramsForPathItem,
+                        pathItem.parameters,
                         definitions
                     );
                 }
