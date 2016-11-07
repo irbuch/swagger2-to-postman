@@ -172,18 +172,59 @@ var uuid = require('node-uuid'),
             return retVal;
         },
 
+        getDefinitonByKey: function (key) {
+            return this.definitions[key];
+        },
+
+        getDefinitonRefKey: function (ref) {
+            if (ref.indexOf("#/definitions/") > -1) {
+                return ref.split("/").pop();
+            }
+        },
+
         resolveDefiniton: function (definition) {
             if (definition.$ref) {
-                var ref = definition.$ref;
-                if (ref.indexOf("#/definitions/") > -1) {
-                    var definitionKey = ref.split("/").pop();
-                    if (definitionKey) {
-                        return this.definitions[definitionKey];
-                    }
+                var key = this.getDefinitonRefKey(definition.$ref);
+                if (key) {
+                    return this.getDefinitonByKey(key)
                 }
             } else {
                 return definition;
             }
+        },
+
+        getAllReferencedDefinitions: function (definition, referenced) {
+            // If the definition is a reference, and we haven't already added it,
+            // resolve and add it, and then find any references in the resolved definition.
+            if (definition.$ref) {
+                var key = this.getDefinitonRefKey(definition.$ref);
+                if (key && !referenced.hasOwnProperty(key)) {
+                    definition = this.getDefinitonByKey(key);
+                    if (definition) {
+                        referenced[key] = definition;
+                        return this.getAllReferencedDefinitions(definition, referenced);
+                    }
+                }
+            }
+            // If the definition is an object, find any references in its propertes and
+            // additionalProperties definitions.
+            else if (definition.type == 'object') {
+                for (var name in definition.properties) {
+                    if (definition.properties.hasOwnProperty(name)) {
+                        var propertyDefinition = definition.properties[name];
+                        referenced = this.getAllReferencedDefinitions(propertyDefinition, referenced);
+                    }
+                }
+                if (definition.additionalProperties) {
+                    referenced = this.getAllReferencedDefinitions(definition.additionalProperties, referenced);
+                }
+            }
+            // If the definition is an array, find any references in its items definition.
+            else if (definition.type == 'array' && definition.items) {
+                return this.getAllReferencedDefinitions(definition.items, referenced);
+            }
+            // Otherwise, return the current references.
+            return referenced;
         },
 
         generateTestsFromSpec: function(responses, url) {
@@ -206,7 +247,7 @@ var uuid = require('node-uuid'),
 
                         if (schema && schema.type) {
                             var fullSchema = _.clone(schema)
-                            fullSchema['definitions'] = this.definitions
+                            fullSchema['definitions'] = this.getAllReferencedDefinitions(schema, {});
 
                             tests+='\n'
                             tests+='if (responseCode.code === ' + status + ') {\n';
