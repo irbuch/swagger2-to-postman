@@ -130,13 +130,26 @@ var uuid = require('node-uuid'),
             this.collectionJson.description = json.info.description;
         },
 
+        resolveParam: function (param) {
+            if (param.$ref) {
+                var ref = param.$ref;
+                if (ref.indexOf("#/parameters/") > -1) {
+                    var definitionKey = ref.split("/").pop();
+                    if (definitionKey) {
+                        return this.paramDefinitions[definitionKey];
+                    }
+                }
+            } else {
+                return param;
+            }
+        },
+
         mergeParamLists: function (oldParams, newParams) {
             var retVal = {},
                 numOldParams,
                 numNewParams,
                 i,
-                parts,
-                lastPart;
+                param;
 
             oldParams = oldParams || [];
             newParams = newParams || [];
@@ -145,44 +158,29 @@ var uuid = require('node-uuid'),
             numNewParams = newParams.length;
 
             for (i = 0; i < numOldParams; i++) {
-                if (oldParams[i].$ref) {
-                    // this is a ref
-                    if (oldParams[i].$ref.indexOf('#/parameters') === 0) {
-                        parts = oldParams[i].$ref.split('/');
-                        lastPart = parts[parts.length - 1];
-                        retVal[lastPart] = this.paramDefinitions[lastPart];
-                    }
-                }
-                else {
-                    retVal[oldParams[i].name] = oldParams[i];
-                }
+                param = this.resolveParam(oldParams[i]);
+                retVal[param.name] = param;
             }
 
             for (i = 0; i < numNewParams; i++) {
-                if (newParams[i].$ref) {
-                    // this is a ref
-                    if (newParams[i].$ref.indexOf('#/parameters') === 0) {
-                        parts = newParams[i].$ref.split('/');
-                        lastPart = parts[parts.length - 1];
-                        retVal[lastPart] = this.paramDefinitions[lastPart];
-                    }
-                }
-                else {
-                    retVal[newParams[i].name] = newParams[i];
-                }
+                param = this.resolveParam(newParams[i]);
+                retVal[param.name] = param;
             }
 
             return retVal;
         },
 
-        getSchemaFromRef: function(ref) {
-            if(ref){
-                if(ref.indexOf("#/definitions/")>-1){
+        resolveDefiniton: function (definition) {
+            if (definition.$ref) {
+                var ref = definition.$ref;
+                if (ref.indexOf("#/definitions/") > -1) {
                     var definitionKey = ref.split("/").pop();
-                    if(definitionKey){
+                    if (definitionKey) {
                         return this.definitions[definitionKey];
                     }
                 }
+            } else {
+                return definition;
             }
         },
 
@@ -202,10 +200,7 @@ var uuid = require('node-uuid'),
                     if (Number(status) >= 200 && Number(status) < 300 &&
                         response && response.schema) {
 
-                        var schema = response.schema
-                        if (schema.$ref) {
-                            schema = this.getSchemaFromRef(response.schema.$ref)
-                        }
+                        var schema = this.resolveDefiniton(response.schema);
 
                         if (schema && schema.type) {
                             var fullSchema = _.clone(schema)
@@ -264,11 +259,8 @@ var uuid = require('node-uuid'),
 
             if (schema.type == 'object') {
                 for (name in properties) {
-                    var propertySchema = properties[name];
+                    var propertySchema = this.resolveDefiniton(properties[name]);
                     // TODO: Check for circular refs
-                    if (propertySchema.$ref) {
-                        propertySchema = this.getSchemaFromRef(propertySchema.$ref);
-                    }
                     if (!propertySchema.readOnly) {
                         value = this.getModelTemplate(propertySchema, depth + 1);
                         definition.push('"' + name + '" : ' + value );
@@ -276,11 +268,8 @@ var uuid = require('node-uuid'),
                 }
                 return JSON.stringify(JSON.parse('{' + definition.join(',') + '}'), null, '   ');
             } else if (schema.type == 'array') {
-                var itemSchema = schema.items
+                var itemSchema = this.resolveDefiniton(schema.items);
                 // TODO: Check for circular refs
-                if (itemSchema.$ref) {
-                    itemSchema = this.getSchemaFromRef(itemSchema.$ref);
-                }
                 value = this.getModelTemplate(itemSchema, depth + 1);
                 return JSON.stringify(JSON.parse('[' + value + ']'), null, '   ');
             }
@@ -389,11 +378,7 @@ var uuid = require('node-uuid'),
                             thisConsumes.indexOf('application/json') > -1) {
                             request.headers += 'Content-Type: application/json\n';
 
-                            var schema = thisParams[param].schema;
-                            if(schema.$ref){
-                                schema = this.getSchemaFromRef(schema.$ref)
-                            }
-
+                            var schema = this.resolveDefiniton(thisParams[param].schema);
                             if(schema){
                                 request.rawModeData = this.getModelTemplate(schema, 0);
                             }
