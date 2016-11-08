@@ -346,7 +346,8 @@ var uuid = require('node-uuid'),
                     'responses': [],
                     'tests': '',
                     'collectionId': this.collectionId,
-                    'synced': false
+                    'synced': false,
+                    'auth': {}
                 },
                 thisParams = this.mergeParamLists(paramsFromPathItem, operation.parameters),
                 thisResponses = operation.responses,
@@ -411,9 +412,19 @@ var uuid = require('node-uuid'),
                         var securityDefinition = this.securityDefinitions[securityRequirementName];
                         // TODO: support basic and apiKey security
                         // TODO: Do we need to check the oauth2 flow type here?
-                        if (securityDefinition && securityDefinition.type === 'oauth2') {
-                            var tokenVarName = 'token_' + securityRequirementName;
-                            request.headers += 'Authorization: Bearer {{' + tokenVarName + '}}\n';
+                        if (securityDefinition) {
+                            if (securityDefinition.type === 'oauth2') {
+                                var tokenVarName = 'token_' + securityRequirementName;
+                                request.headers += 'Authorization: Bearer {{' + tokenVarName + '}}\n';
+                            } else if (securityDefinition.type === 'basic') {
+                                request.auth = {
+                                    'type': 'basic',
+                                    'basic': {
+                                        'username': '{{client_id}}',
+                                        'password': '{{client_secret}}'
+                                    }
+                                }
+                            }
                         }
                     }
                 }
