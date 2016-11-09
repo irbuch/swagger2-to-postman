@@ -12,18 +12,14 @@ var uuid = require('node-uuid'),
     Swagger2Postman = jsface.Class({
         constructor: function (options) {
             this.collectionJson = {
-                'id': '',
-                'name': '',
-                'description': '',
-                'order': [],
-                'folders': [],
-                'timestamp': 1413302258635,
-                'synced': false,
-                'requests': []
+                'info': {
+                    'name': '',
+                    '_postman_id': uuid.v4(),
+                    'schema': 'https://schema.getpostman.com/json/collection/v2.1.0/collection.json'
+                },
+                'items': []
             };
-            this.basePath = '';
-            this.collectionId = '';
-            this.folders = {};
+            this.basePath = {};
             this.definitions = {};
             this.paramDefinitions = {};
             this.securityDefinitions = {};
@@ -68,23 +64,20 @@ var uuid = require('node-uuid'),
         },
 
         setBasePath: function (json) {
-            this.basePath = '';
             if (json.host) {
-                this.basePath = json.host;
+                // This should be `domain` according to the specs, but postman seems
+                // to only accept `host`.
+                this.basePath.host = json.host;
             }
             if (json.basePath) {
-                this.basePath += json.basePath;
+                this.basePath.path = json.basePath.replace(/\/+$/, "").split('/');
             }
 
             if (json.schemes && json.schemes.indexOf('https') != -1) {
-                this.basePath = 'https://' + this.basePath;
+                this.basePath.protocol = 'https';
             }
             else {
-                this.basePath = 'http://' + this.basePath;
-            }
-
-            if (!this.endsWith(this.basePath, '/')) {
-                this.basePath += '/';
+                this.basePath.protocol = 'http';
             }
         },
 
@@ -99,13 +92,8 @@ var uuid = require('node-uuid'),
             this.logger('Segments: ' + JSON.stringify(segments));
             if (numSegments > 1) {
                 folderName = segments[1];
-
-                // create a folder for this path url
-                if (!this.folders[folderName]) {
-                    this.folders[folderName] = this.createNewFolder(folderName);
-                }
-                this.logger('For path ' + pathUrl + ', returning folderName ' + this.folders[folderName].name);
-                return this.folders[folderName].name;
+                this.logger('For path ' + pathUrl + ', returning folderName ' + folderName);
+                return folderName;
             }
             else {
                 this.logger('Error - path MUST begin with /');
@@ -113,23 +101,14 @@ var uuid = require('node-uuid'),
             }
         },
 
-        createNewFolder: function (name) {
-            var newFolder = {
-                'id': uuid.v4(),
-                'name': name,
-                'description': 'Folder for ' + name,
-                'order': [],
-                'collection_name': this.collectionJson.name,
-                'collection_id': this.collectionId,
-                'collection': this.collectionId
-            };
-            this.logger('Created folder ' + newFolder.name);
-            return newFolder;
-        },
-
         handleInfo: function (json) {
-            this.collectionJson.name = json.info.title;
-            this.collectionJson.description = json.info.description;
+            this.collectionJson.info.name = json.info.title;
+            if (json.info.description) {
+                this.collectionJson.info.description = {
+                    'content': json.info.description,
+                    'type': 'text/markdown'
+                }
+            }
         },
 
         resolveParam: function (param) {
@@ -227,16 +206,16 @@ var uuid = require('node-uuid'),
             return referenced;
         },
 
-        generateTestsFromSpec: function(responses, url) {
-            var tests = "",
+        generateTestsFromSpec: function(responses, path) {
+            var tests = [],
                 statusCodes = _.keys(responses);
 
             if (statusCodes.length > 0) {
-                this.logger('Adding Test for: ' + url);
+                this.logger('Adding Test for: ' + path);
 
                 var statusCodesString = statusCodes.join();
 
-                tests += 'tests["Status code is expected"] = [' + statusCodesString + '].indexOf(responseCode.code) > -1;\n';
+                tests.push('tests["Status code is expected"] = [' + statusCodesString + '].indexOf(responseCode.code) > -1;');
 
                 // set test in case of success
                 _.forEach(responses, (response,status) => {
@@ -249,15 +228,15 @@ var uuid = require('node-uuid'),
                             var fullSchema = _.clone(schema)
                             fullSchema['definitions'] = this.getAllReferencedDefinitions(schema, {});
 
-                            tests+='\n'
-                            tests+='if (responseCode.code === ' + status + ') {\n';
-                            tests+='\tvar data = JSON.parse(responseBody);\n';
-                            tests+='\tvar schema = ' + JSON.stringify(fullSchema,null,4) + ';\n';
-                            tests+='\ttests["Response Body respects JSON schema documentation"] = tv4.validate(data, schema);\n'
-                            tests+='\tif(tests["Response Body respect JSON schema documentation"] === false){\n';
-                            tests+='\t\tconsole.log(tv4.error);\n';
-                            tests+='\t}\n';
-                            tests+='}\n';
+                            tests.push('');
+                            tests.push('if (responseCode.code === ' + status + ') {');
+                            tests.push('\tvar data = JSON.parse(responseBody);');
+                            tests.push('\tvar schema = ' + JSON.stringify(fullSchema,null,4) + ';');
+                            tests.push('\ttests["Response Body respects JSON schema documentation"] = tv4.validate(data, schema);');
+                            tests.push('\tif(tests["Response Body respect JSON schema documentation"] === false){');
+                            tests.push('\t\tconsole.log(tv4.error);');
+                            tests.push('\t}');
+                            tests.push('}');
                         }
                     }
                 });
@@ -321,67 +300,54 @@ var uuid = require('node-uuid'),
             }
         },
 
-        addOperationToFolder: function (path, method, operation, folderName, paramsFromPathItem) {
+        buildUrl: function(basePath, path) {
+            if (path.length > 0 && path[0] === '/') {
+                path = path.substring(1);
+            }
+            path = path.split('/');
+
+            var urlObject = _.clone(basePath)
+            if (basePath.hasOwnProperty('path')) {
+                urlObject.path = basePath.path.concat(path);
+            } else {
+                urlObject.path = path;
+            }
+
+            return urlObject
+        },
+
+        buildItemFromOperation: function (path, method, operation, paramsFromPathItem) {
             if (this.options.tagFilter &&
                 operation.tags &&
                 operation.tags.indexOf(this.options.tagFilter) === -1) {
                 // Operation has tags that don't match the filter
                 return;
             }
-
             var request = {
-                    'id': uuid.v4(),
-                    'headers': '',
-                    'url': '',
-                    'pathVariables': {},
-                    'preRequestScript': '',
-                    'method': 'GET',
-                    'data': [],
-                    'dataMode': 'raw',
-                    "rawModeData": "",
-                    'description': operation.description || '',
-                    'descriptionFormat': 'html',
-                    'time': '',
-                    'version': 2,
-                    'responses': [],
-                    'tests': '',
-                    'collectionId': this.collectionId,
-                    'synced': false,
-                    'auth': {}
-                },
-                thisParams = this.mergeParamLists(paramsFromPathItem, operation.parameters),
-                thisResponses = operation.responses,
-                hasQueryParams = false,
-                param,
-                requestAttr,
-                thisConsumes = this.globalConsumes,
-                tempBasePath,
-                thisSecurity = operation.security || this.globalSecurity;
-
-            if (path.length > 0 && path[0] === '/') {
-                path = path.substring(1);
+                'url': this.buildUrl(this.basePath, path),
+                // This field isn't in the 2.1 spec, but seems to be used by postman
+                'description': operation.description,
+                'auth': {},
+                'method': method,
+                'headers': []
             }
 
-            // Problem here
-            // url.resolve("http://host.com/", "/api") returns "http://host.com/api"
-            // but url.resolve("http://{{host}}.com/", "/api") returns "http:///%7B..host.com/api"
-            // (note the extra slash after http:)
-            // request.url = decodeURI(url.resolve(this.basePath, path));
-            tempBasePath = this.basePath
-                .replace(/{{/g, 'POSTMAN_VARIABLE_OPEN_DB')
-                .replace(/}}/g, 'POSTMAN_VARIABLE_CLOSE_DB');
+            var item = {
+                'name': operation.summary,
+                'events': [],
+                'request': request,
+                'responses': []
+            }
 
-            request.url = decodeURI(url.resolve(tempBasePath, path))
-                .replace(/POSTMAN_VARIABLE_OPEN_DB/g, '{{')
-                .replace(/POSTMAN_VARIABLE_CLOSE_DB/g, '}}');
+            var thisParams = this.mergeParamLists(paramsFromPathItem, operation.parameters),
+                thisResponses = operation.responses,
+                thisConsumes = this.globalConsumes,
+                thisSecurity = operation.security || this.globalSecurity;
 
-            request.method = method;
-            request.name = operation.summary;
-            request.time = (new Date()).getTime();
-
+            // TODO: Where should this go in postman 2.x spec?
             // Handle custom swagger attributes for postman aws integration
             if (operation[META_KEY]) {
-                for (requestAttr in operation[META_KEY]) {
+                for (var requestAttr in operation[META_KEY]) {
                     if (operation[META_KEY].hasOwnProperty(requestAttr)) {
                         request[requestAttr] = operation[META_KEY][requestAttr];
                     }
@@ -390,11 +356,6 @@ var uuid = require('node-uuid'),
 
             if (operation.consumes) {
                 thisConsumes = operation.consumes;
-            }
-            // set the default dataMode for this request, even if it doesn't have a body
-            // eg. for GET requests
-            if (thisConsumes.indexOf('application/x-www-form-urlencoded') > -1) {
-                request.dataMode = 'urlencoded';
             }
 
             // handle security
@@ -410,18 +371,22 @@ var uuid = require('node-uuid'),
 
                         var scopes = securityObject[securityRequirementName];
                         var securityDefinition = this.securityDefinitions[securityRequirementName];
-                        // TODO: support basic and apiKey security
-                        // TODO: Do we need to check the oauth2 flow type here?
+                        // TODO: support apiKey security
                         if (securityDefinition) {
                             if (securityDefinition.type === 'oauth2') {
-                                var tokenVarName = 'token_' + securityRequirementName;
-                                request.headers += 'Authorization: Bearer {{' + tokenVarName + '}}\n';
+                                var tokenVarName = securityRequirementName + '_access_token';
+                                request.headers.push({
+                                    'key': 'Authorization',
+                                    'value': 'Bearer {{' + tokenVarName + '}}'
+                                });
                             } else if (securityDefinition.type === 'basic') {
                                 request.auth = {
                                     'type': 'basic',
                                     'basic': {
-                                        'username': '{{client_id}}',
-                                        'password': '{{client_secret}}'
+                                        'username': '{{' + securityRequirementName + '_username}}',
+                                        'password': '{{' + securityRequirementName + '_password}}',
+                                        'saveHelperData': true,
+                                        'showPassword': true
                                     }
                                 }
                             }
@@ -431,132 +396,178 @@ var uuid = require('node-uuid'),
             }
 
             // set data and headers
-            for (param in thisParams) {
+            for (var param in thisParams) {
                 if (thisParams.hasOwnProperty(param) && thisParams[param]) {
                     this.logger('Processing param: ' + JSON.stringify(param));
                     if (thisParams[param].in === 'query' && this.options.includeQueryParams !== false) {
                         if (thisParams[param].required || this.options.includeOptionalQueryParams == true) {
-                            if (!hasQueryParams) {
-                                hasQueryParams = true;
-                                request.url += '?';
+                            if (!request.url.hasOwnProperty('query')) {
+                                request.url.query = [];
                             }
-                            request.url += thisParams[param].name + '={{' + thisParams[param].name + '}}&';
+                            request.url.query.push({
+                                'key': thisParams[param].name,
+                                'value': '{{' + thisParams[param].name + '}}',
+                                'description': thisParams[param].description
+                            });
                         }
                     }
 
                     else if (thisParams[param].in === 'header') {
-                        request.headers += thisParams[param].name + ': {{' + thisParams[param].name + '}}\n';
+                        request.headers.push({
+                            'key': thisParams[param].name,
+                            'value': '{{' + thisParams[param].name + '}}'
+                        });
                     }
 
                     else if (thisParams[param].in === 'body') {
-                        request.dataMode = 'raw';
+                        if (!request.hasOwnProperty('body')) {
+                            request.body = {};
+                        }
+                        request.body.mode = 'raw';
                         if (this.options.includeBodyTemplate === true &&
                             thisParams[param].schema &&
                             thisConsumes.indexOf('application/json') > -1) {
-                            request.headers += 'Content-Type: application/json\n';
+                            request.headers.push({
+                                'key': 'Content-Type',
+                                'value': 'application/json'
+                            });
 
                             var schema = this.resolveDefiniton(thisParams[param].schema);
                             if(schema){
-                                request.rawModeData = this.getModelTemplate(schema, 0);
+                                request.body.raw = this.getModelTemplate(schema, 0);
                             }
                         }
-                        if(!request.rawModeData || request.rawModeData === ""){
-                            request.rawModeData = thisParams[param].description;
+                        if(!request.body.raw || request.body.raw === ""){
+                            request.body.raw = thisParams[param].description;
                         }
                     }
 
                     else if (thisParams[param].in === 'formData') {
-                        if (thisConsumes.indexOf('application/x-www-form-urlencoded') > -1) {
-                            request.dataMode = 'urlencoded';
+                        if (!request.hasOwnProperty('body')) {
+                            request.body = {};
                         }
-                        else {
-                            request.dataMode = 'params';
-                        }
-                        request.data.push({
+                        var data = {
                             'key': thisParams[param].name,
                             'value': '{{' + thisParams[param].name + '}}',
-                            'type': 'text',
                             'enabled': true
-                        });
+                        };
+                        if (thisConsumes.indexOf('application/x-www-form-urlencoded') > -1) {
+                            request.body.mode = 'urlencoded';
+                            if (!request.body.hasOwnProperty('urlencoded')) {
+                                request.body.urlencoded = [];
+                            }
+                            request.body.urlencoded.push(data);
+                        } else {
+                            // Assume this is a multipart/form-data parameter, even if the
+                            // header isn't set.
+                            request.body.mode = 'formdata';
+                            if (!request.body.hasOwnProperty('formdata')) {
+                                request.body.formdata = [];
+                            }
+                            request.body.formdata.push(data);
+                        }
                     }
                     else if (thisParams[param].in === 'path') {
-                        if (!request.hasOwnProperty('pathVariables')) {
-                            request.pathVariables = {};
+                        if (!request.url.hasOwnProperty('variables')) {
+                            request.url.variables = [];
                         }
-                        request.pathVariables[thisParams[param].name] = '{{' + thisParams[param].name + '}}';
+                        request.url.variables.push({
+                            'id': thisParams[param].name,
+                            'value': '{{' + thisParams[param].name + '}}',
+                            'type': thisParams[param].type
+                        });
                     }
                 }
             }
-
-            request.tests = this.generateTestsFromSpec(thisResponses, request.url);
-
-            if (hasQueryParams && this.endsWith(request.url, '&')) {
-                request.url = request.url.slice(0, -1);
+            // set the default body mode for this request, even if it doesn't have a body
+            // eg. for GET requests
+            if (!request.hasOwnProperty('body')) {
+                request.body = {};
+                if (thisConsumes.indexOf('application/x-www-form-urlencoded') > -1) {
+                    request.body.mode = 'urlencoded';
+                    request.body.urlencoded = [];
+                } else if (thisConsumes.indexOf('multipart/form-data') > -1) {
+                    request.body.mode = 'formdata';
+                    request.body.formdata = [];
+                } else {
+                    request.body.mode = 'raw';
+                    request.body.raw = '';
+                }
             }
 
-            this.collectionJson.requests.push(request);
-            if (folderName !== null) {
-                this.folders[folderName].order.push(request.id);
+            var tests = this.generateTestsFromSpec(thisResponses, path);
+            if (tests && tests.length > 0) {
+                item.events.push({
+                    'listen': 'test',
+                    'script': {
+                        'type': 'text/javascript',
+                        'exec': tests
+                    }
+                });
             }
-            else {
-                this.collectionJson.order.push(request.id);
-            }
+
+            return item;
         },
 
-        addPathItemToFolder: function (path, pathItem, folderName) {
+        buildItemListFromPath: function (path, pathItem) {
             if (pathItem.$ref) {
                 this.logger('Error - cannot handle $ref attributes');
                 return;
             }
 
+            var items = [];
+
             var acceptedPostmanVerbs = [
-                    'get', 'put', 'post', 'patch', 'delete', 'copy', 'head', 'options',
-                    'link', 'unlink', 'purge', 'lock', 'unlock', 'propfind', 'view'],
-                numVerbs = acceptedPostmanVerbs.length,
-                i,
-                verb;
+                'get', 'put', 'post', 'patch', 'delete', 'copy', 'head', 'options',
+                'link', 'unlink', 'purge', 'lock', 'unlock', 'propfind', 'view'];
 
             // replace path variables {petId} with :petId
             if (path) {
                 path = path.replace(/{/g, ':').replace(/}/g, '');
             }
 
-            for (i = 0; i < numVerbs; i++) {
-                verb = acceptedPostmanVerbs[i];
+            for (var i = 0; i < acceptedPostmanVerbs.length; i++) {
+                var verb = acceptedPostmanVerbs[i];
                 if (pathItem[verb]) {
-                    this.addOperationToFolder(
-                        path,
-                        verb.toUpperCase(),
-                        pathItem[verb],
-                        folderName,
-                        pathItem.parameters
+                    items.push(
+                        this.buildItemFromOperation(
+                            path,
+                            verb.toUpperCase(),
+                            pathItem[verb],
+                            pathItem.parameters
+                        )
                     );
                 }
             }
+            return items;
         },
 
-        handlePaths: function (json) {
-            var paths = json.paths,
-                path,
-                folderName;
-
+        handlePaths: function (paths) {
+            var folders = {};
+            var items = [];
             // Add a folder for each path
-            for (path in paths) {
+            for (var path in paths) {
                 if (paths.hasOwnProperty(path)) {
-                    folderName = this.getFolderNameForPath(path);
+                    var folderName = this.getFolderNameForPath(path);
                     this.logger('Adding path item. path = ' + path + '   folder = ' + folderName);
-                    this.addPathItemToFolder(path, paths[path], folderName);
+                    var itemList = this.buildItemListFromPath(path, paths[path]);
+                    if (itemList && itemList.length > 0) {
+                        if (folderName) {
+                            if (folders.hasOwnProperty(folderName)) {
+                                folders[folderName].items = folders[folderName].items.concat(itemList);
+                            } else {
+                                folders[folderName] = {
+                                    'name': folderName,
+                                    'items': itemList
+                                };
+                            }
+                        } else {
+                            items = items.concat(itemList);
+                        }
+                    }
                 }
             }
-        },
-
-        addFoldersToCollection: function () {
-            var folderName;
-            for (folderName in this.folders) {
-                if (this.folders.hasOwnProperty(folderName) && this.folders[folderName].order.length > 0) {
-                    this.collectionJson.folders.push(this.folders[folderName]);
-                }
-            }
+            this.collectionJson.items = items.concat(_.values(folders));
         },
 
         convert: function (json) {
@@ -582,12 +593,8 @@ var uuid = require('node-uuid'),
 
             this.setBasePath(json);
 
-            this.handlePaths(json);
+            this.handlePaths(json.paths);
 
-            this.addFoldersToCollection();
-
-            this.collectionJson.id = this.collectionId;
-            // this.logger(JSON.stringify(this.collectionJson));
             this.logger('Swagger converted successfully');
 
             validationResult.collection = this.collectionJson;
