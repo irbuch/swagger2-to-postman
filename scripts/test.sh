@@ -2,17 +2,13 @@
 
 set -e;
 
-echo "jscs v`jscs --version`";
-jscs ./convert.js test/;
-
-echo;
-
-jshint --version;
-jshint ./convert.js test/;
-echo "No code lint issues found.";
+echo "eslint $(eslint --version)";
+eslint ./convert.js bin/ test/;
 
 echo
-echo "Running unit tests..."
-echo "mocha v`mocha --version`";
-
+echo "mocha v$(mocha --version)";
 mocha test/*-spec.js;
+
+# echo
+# echo "istanbul v$(istanbul --version)";
+# istanbul cover _mocha -- tests/**

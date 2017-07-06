@@ -1,0 +1,168 @@
+---
+
+root: true
+env:
+  node: true
+  mocha: true
+extends: "eslint:recommended"
+rules:
+  # All Rules are listed at http://eslint.org/docs/rules/
+
+  # Possible Errors
+  # most in this section are on by default; these were not but are enabled for this project.
+
+  # use only-multiline but plan to switch to always-multiline
+  comma-dangle:
+    - error
+    - only-multiline
+  no-extra-parens: error
+
+  # Best Practices
+
+  array-callback-return: warn
+  block-scoped-var: warn
+  consistent-return: warn
+  curly: error
+  default-case: warn
+  dot-location:
+    - error
+    - property
+  dot-notation: warn
+  eqeqeq: error
+  no-div-regex: error
+  no-else-return: error
+  no-empty-function: warn
+  no-eval: error
+  no-extend-native: error
+  no-extra-bind: warn
+  no-floating-decimal: warn
+  no-implicit-coercion: warn
+  no-implied-eval: error
+  no-invalid-this: warn
+  no-iterator: error
+  no-labels: error
+  no-lone-blocks: error
+  no-loop-func: error
+  no-multi-spaces: error
+  no-multi-str: error
+  no-native-reassign: error
+  no-new: error
+  no-new-func: error
+  no-new-wrappers: error
+  no-octal-escape: error
+  no-param-reassign: warn
+  no-proto: error
+  no-return-assign: error
+  no-script-url: error
+  no-self-compare: error
+  no-sequences: error
+  no-throw-literal: error
+  no-unmodified-loop-condition: error
+  no-unused-expressions: error
+  no-useless-call: error
+  no-useless-concat: error
+  no-void: error
+  no-warning-comments: warn
+  no-with: error
+  radix:
+    - warn
+    - as-needed
+  wrap-iife:
+    - error
+    - inside
+  yoda:
+    - error
+    - never
+
+
+  # Strict Mode
+
+  strict:
+    - error
+    - global
+
+
+  # Variables
+
+  no-catch-shadow: error
+  no-shadow: error
+  no-undef-init: error
+  no-use-before-define: error
+
+
+  # Node.js and CommonJS
+
+  global-require: error
+  no-mixed-requires: error
+  no-new-require: error
+  no-process-exit: error
+
+
+  # Style
+
+  block-spacing:
+    - error
+    - always
+  brace-style:
+    - error
+    - 1tbs
+  comma-spacing: error
+  comma-style:
+    - error
+    - last
+  consistent-this:
+    - error
+    - self
+  eol-last: error
+  indent:
+    - error
+    - 4
+    - SwitchCase: 1
+  key-spacing: error
+  keyword-spacing: error
+  linebreak-style: error
+  max-len:
+    - error
+    - code: 120
+      ignoreComments: true
+      ignoreUrls: true
+  max-statements-per-line: error
+  new-cap: error
+  new-parens: error
+  no-array-constructor: error
+  no-bitwise: error
+  no-lonely-if: error
+  no-negated-condition: error
+  no-nested-ternary: error
+  no-new-object: error
+  no-spaced-func: error
+  no-trailing-spaces: error
+  no-unneeded-ternary: error
+  no-whitespace-before-property: error
+  object-curly-spacing: error
+  one-var:
+    - error
+    - never
+  quote-props:
+    - error
+    - as-needed
+  quotes:
+    - error
+    - single
+    - avoidEscape: true
+  semi: error
+  semi-spacing: error
+  space-before-blocks: error
+  space-before-function-paren:
+    - error
+    - anonymous: always
+      named: never
+  space-in-parens:
+    - error
+    - never
+  space-infix-ops: error
+  space-unary-ops:
+    - error
+    - words: true
+      nonwords: false
+  spaced-comment: error

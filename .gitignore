@@ -1,9 +1,10 @@
 # Idea
 .idea/
 
-#################  
+#################
 ## npm
 #################
 
 npm-debug.log
 node_modules/
+coverage/

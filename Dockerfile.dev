@@ -1,0 +1,10 @@
+FROM node:6-alpine
+
+RUN apk add --no-cache \
+        bash
+
+# https://github.com/npm/npm/issues/13306#issuecomment-236876133
+# Bugfix pending: https://github.com/npm/npm/pull/13901
+RUN cd $(npm root -g)/npm \
+  && npm install --quiet fs-extra \
+  && sed -i -e s/graceful-fs/fs-extra/ -e s/fs.rename/fs.move/ ./lib/utils/rename.js

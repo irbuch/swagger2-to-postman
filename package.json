@@ -4,12 +4,18 @@
   "description": "A module to convert swagger 2.0 JSONs to Postman v2.0",
   "main": "convert.js",
   "scripts": {
-    "test": "scripts/test.sh"
+    "test": "scripts/test.sh",
+    "coverage": "istanbul cover _mocha -- test/**"
+  },
+  "directories": {
+    "bin": "bin"
   },
   "dependencies": {
+    "commander": "^2.11.0",
     "jsface": "^2.4.9",
     "lodash": "3.10.0",
-    "node-uuid": "^1.4.3"
+    "swagger-parser": "^3.4.1",
+    "uuid": "^3.1.0"
   },
   "repository": {
     "type": "git",
@@ -27,9 +33,9 @@
   },
   "homepage": "https://github.com/postmanlabs/swagger2-postman",
   "devDependencies": {
+    "eslint": "^4.0.0",
     "expect.js": "^0.3.1",
-    "jscs": "^2.1.0",
-    "jshint": "^2.8.0",
+    "istanbul": "^0.4.0",
     "mocha": "^2.2.5"
   }
 }
