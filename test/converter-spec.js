@@ -4,6 +4,7 @@ var expect = require('expect.js');
 var Swagger2Postman = require('../convert.js');
 var fs = require('fs');
 var path = require('path');
+var nock = require('nock');
 
 /* global describe, it */
 describe('converter tests', function () {
@@ -65,7 +66,7 @@ describe('converter tests', function () {
         var samplePath = path.join(__dirname, 'data', 'sampleswagger.json');
         var converter = new Swagger2Postman(opts);
         converter.convert(samplePath, function (err, result) {
-            expect(result.item[0].item[3].request.url.query.length > 0);
+            expect(result.item[0].item[3].request.url.query.length > 0).to.be.ok();
             done(err);
         });
     });
@@ -78,7 +79,7 @@ describe('converter tests', function () {
         var converter = new Swagger2Postman(options);
         converter.setLogger(_.noop);
         converter.convert(samplePath, function (err, result) {
-            expect(result.item[0].item[0].request.body.raw.indexOf('status') > 0);
+            expect(result.item[0].item[0].request.body.raw.indexOf('status') > 0).to.be.ok();
             done(err);
         });
     });
@@ -90,7 +91,7 @@ describe('converter tests', function () {
         var samplePath = path.join(__dirname, 'data', 'swagger2.json');
         var converter = new Swagger2Postman(options);
         converter.convert(samplePath, function (err, result) {
-            expect(result.item[1].item[0].request.body.raw.indexOf('rating') > 0);
+            expect(result.item[1].item[0].request.body.raw.indexOf('rating') > 0).to.be.ok();
             done(err);
         });
     });
@@ -99,8 +100,8 @@ describe('converter tests', function () {
         var samplePath = path.join(__dirname, 'data', 'swagger2-with-params.json');
         var converter = new Swagger2Postman();
         converter.convert(samplePath, function (err, result) {
-            expect(result.item[0].item[0].request.url.path.indexOf(':ownerId') > 0);
-            expect(result.item[0].item[0].request.url.path.indexOf(':petId') > 0);
+            expect(result.item[0].item[0].request.url.path.indexOf(':ownerId') > 0).to.be.ok();
+            expect(result.item[0].item[0].request.url.path.indexOf(':petId') > 0).to.be.ok();
             done(err);
         });
     });
@@ -112,7 +113,10 @@ describe('converter tests', function () {
         var samplePath = path.join(__dirname, 'data', 'swagger2.json');
         var converter = new Swagger2Postman(options);
         converter.convert(samplePath, function (err, result) {
-            expect(result.item.length === 0);
+            // one operation has a tag but the other does not; therefore the list should
+            // only contain the operation with no tags.
+            expect(result.item.length === 1).to.be.ok();
+            expect(result.item[0].name).to.equal('Data');
             done(err);
         });
     });
@@ -124,8 +128,111 @@ describe('converter tests', function () {
         var samplePath = path.join(__dirname, 'data', 'swagger2.json');
         var converter = new Swagger2Postman(options);
         converter.convert(samplePath, function (err, result) {
-            expect(result.item.length > 0);
+            expect(result.item.length > 0).to.be.ok();
             done(err);
+        });
+    });
+
+    describe('schema load tests', function () {
+
+        before(function () {
+            nock.cleanAll.bind(nock);
+        });
+
+        it('should disable collection validation if https.get status code != 200', function (done) {
+            var server = nock('https://schema.getpostman.com')
+                .get('/json/collection/v2.0.0/collection.json')
+                .reply(404);
+
+            var logs = [];
+            function _logger(msg) {
+                logs.push(msg);
+            }
+
+            var samplePath = path.join(__dirname, 'data', 'swagger2.json');
+            var converter = new Swagger2Postman();
+            converter.setLogger(_logger);
+            converter.convert(samplePath, function (err, result) {
+                expect(logs.indexOf('load schema request failed: 404') > 0).to.be.ok();
+                expect(server.isDone());
+                expect(result).to.be.ok();
+                done(err);
+            });
+        });
+
+        it('should disable collection validation if https.get content-type not application/json', function (done) {
+            var server = nock('https://schema.getpostman.com')
+                .defaultReplyHeaders({
+                    'Content-Type': 'application/xml'
+                })
+                .get('/json/collection/v2.0.0/collection.json')
+                .reply(200);
+
+            var logs = [];
+            function _logger(msg) {
+                logs.push(msg);
+            }
+
+            var samplePath = path.join(__dirname, 'data', 'swagger2.json');
+            var converter = new Swagger2Postman();
+            converter.setLogger(_logger);
+            converter.convert(samplePath, function (err, result) {
+                expect(
+                    logs.indexOf(
+                        'load schema request failed: Expected application/json but received application/xml'
+                    ) > 0).to.be.ok();
+                expect(server.isDone());
+                expect(result).to.be.ok();
+                done(err);
+            });
+        });
+
+        it('should disable collection validation if https.get payload not valid JSON', function (done) {
+            var server = nock('https://schema.getpostman.com')
+                .defaultReplyHeaders({
+                    'Content-Type': 'application/json'
+                })
+                .get('/json/collection/v2.0.0/collection.json')
+                .reply(200, '{"name": "abc",}');
+
+            var logs = [];
+            function _logger(msg) {
+                logs.push(msg);
+            }
+
+            var samplePath = path.join(__dirname, 'data', 'swagger2.json');
+            var converter = new Swagger2Postman();
+            converter.setLogger(_logger);
+            converter.convert(samplePath, function (err, result) {
+                expect(logs.indexOf('schema not json: Unexpected token } in JSON at position 15') > 0).to.be.ok();
+                expect(server.isDone());
+                expect(result).to.be.ok();
+                done(err);
+            });
+        });
+
+        it('should disable collection validation if https.get fails', function (done) {
+            var server = nock('https://schema.getpostman.com')
+                .get('/json/collection/v2.0.0/collection.json')
+                .replyWithError('unexpected error');
+
+            var logs = [];
+            function _logger(msg) {
+                logs.push(msg);
+            }
+
+            var samplePath = path.join(__dirname, 'data', 'swagger2.json');
+            var converter = new Swagger2Postman();
+            converter.setLogger(_logger);
+            converter.convert(samplePath, function (err, result) {
+                expect(
+                    logs.indexOf(
+                        'failed to load schema; validation disabled. Error: unexpected error'
+                    ) > 0).to.be.ok();
+                expect(server.isDone());
+                expect(result).to.be.ok();
+                done(err);
+            });
         });
     });
 });
