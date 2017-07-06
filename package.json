@@ -15,6 +15,7 @@
     "bin": "bin"
   },
   "dependencies": {
+    "ajv": "^5.2.0",
     "commander": "^2.11.0",
     "jsface": "^2.4.9",
     "lodash": "^4.17.0",

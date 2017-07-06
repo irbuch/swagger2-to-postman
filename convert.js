@@ -1,11 +1,18 @@
 'use strict';
+var https = require('https');
 var uuidv4 = require('uuid/v4');
 var jsface = require('jsface');
 var _ = require('lodash');
 var SwaggerParser = require('swagger-parser');
 
-var META_KEY = 'x-postman-meta';
+var Ajv = require('ajv');
+var metaSchema = require('ajv/lib/refs/json-schema-draft-04.json');
+
 var POSTMAN_SCHEMA = 'https://schema.getpostman.com/json/collection/v2.0.0/collection.json';
+
+function isValid() {
+    return true;
+}
 
 var Swagger2Postman = jsface.Class({ // eslint-disable-line
     constructor: function (options) {
@@ -15,13 +22,29 @@ var Swagger2Postman = jsface.Class({ // eslint-disable-line
                 _postman_id: uuidv4(),
                 schema: POSTMAN_SCHEMA
             },
-            items: []
+            item: []
         };
         this.basePath = {};
         this.securityDefinitions = {};
         this.globalConsumes = [];
         this.globalSecurity = [];
         this.logger = _.noop;
+
+        this.validator = new Ajv({
+            verbose: true,
+            allErrors: true,
+            meta: false,
+            extendRefs: true,
+            unknownFormats: 'ignore',
+            validateSchema: false,
+        });
+        this.validator.addMetaSchema(metaSchema);
+        this.validator._opts.defaultMeta = metaSchema.id;
+        this.validator.removeKeyword('propertyNames');
+        this.validator.removeKeyword('contains');
+        this.validator.removeKeyword('const');
+
+        this.validate = isValid; // default to a noop incase loading the schema fails
 
         this.options = options || {};
 
@@ -39,6 +62,52 @@ var Swagger2Postman = jsface.Class({ // eslint-disable-line
 
     setLogger: function (func) {
         this.logger = func;
+    },
+
+    loadSchema: function (cb) {
+        var self = this;
+
+        https.get(POSTMAN_SCHEMA, function (res) {
+            var statusCode = res.statusCode;
+            var contentType = res.headers['content-type'];
+
+            var failed = false;
+            if (statusCode !== 200) {
+                self.logger('load schema request failed: ' + statusCode);
+                failed = true;
+            } else if (!/^application\/json/.test(contentType)) {
+                self.logger('load schema request failed: Expected application/json but received ' + contentType);
+                failed = true;
+            }
+            if (failed) {
+                self.logger('failed to load schema; validation disabled.');
+                // consume response data to free up memory
+                res.resume();
+                cb();
+                return;
+            }
+
+            res.setEncoding('utf8');
+
+            var rawData = '';
+            res.on('data', function (chunk) {
+                rawData += chunk;
+            });
+            res.on('end', function () {
+                try {
+                    var parsedData = JSON.parse(rawData);
+                    self.validate = self.validator.compile(parsedData);
+                    self.logger('schema load successful');
+                } catch (e) {
+                    self.logger('schema not json: ' + e.message);
+                }
+                cb();
+            });
+
+        }).on('error', function (err) {
+            self.logger('failed to load schema; validation disabled. ' + err);
+            cb();
+        });
     },
 
     setBasePath: function (json) {
@@ -195,18 +264,20 @@ var Swagger2Postman = jsface.Class({ // eslint-disable-line
                 // var scopes = security[securityRequirementName];
                 // TODO: support apiKey security
                 if (securityDefinition.type === 'oauth2') {
+                    request.auth = {
+                        type: securityDefinition.type
+                    };
+                    _.defaults(request, {headers: []});
                     request.headers.push({
                         key: 'Authorization',
                         value: 'Bearer {{' + securityRequirementName + '_access_token}}'
                     });
                 } else if (securityDefinition.type === 'basic') {
                     request.auth = {
-                        type: 'basic',
+                        type: securityDefinition.type,
                         basic: {
                             username: '{{' + securityRequirementName + '_username}}',
-                            password: '{{' + securityRequirementName + '_password}}',
-                            saveHelperData: true,
-                            showPassword: true
+                            password: '{{' + securityRequirementName + '_password}}'
                         }
                     };
                 }
@@ -231,6 +302,7 @@ var Swagger2Postman = jsface.Class({ // eslint-disable-line
         }
 
         if (param.in === 'header') {
+            _.defaults(request, {headers: []});
             request.headers.push({
                 key: param.name,
                 value: '{{' + param.name + '}}'
@@ -246,6 +318,7 @@ var Swagger2Postman = jsface.Class({ // eslint-disable-line
                 param.schema &&
                 consumes.indexOf('application/json') > -1) {
 
+                _.defaults(request, {headers: []});
                 request.headers.push({
                     key: 'Content-Type',
                     value: 'application/json'
@@ -325,11 +398,8 @@ var Swagger2Postman = jsface.Class({ // eslint-disable-line
         }
         var request = {
             url: this.buildUrl(path),
-            // This field isn't in the 2.1 spec, but seems to be used by postman
-            description: operation.description,
-            auth: {},
-            method: method,
-            headers: []
+            description: operation.description || operation.summary,
+            method: method
         };
 
         var item = {
@@ -343,13 +413,12 @@ var Swagger2Postman = jsface.Class({ // eslint-disable-line
         var thisConsumes = operation.consumes || this.globalConsumes;
         var thisSecurity = operation.security || this.globalSecurity;
 
-        // TODO: Where should this go in postman 2.x spec?
-        // Handle custom swagger attributes for postman aws integration
-        if (operation[META_KEY]) {
-            for (var requestAttr in operation[META_KEY]) {
-                request[requestAttr] = operation[META_KEY][requestAttr];
-            }
-        }
+        // TODO: Handle custom swagger attributes for postman aws integration
+        // if (operation['x-postman-meta']) {
+        //     for (var requestAttr in operation['x-postman-meta']) {
+        //         request[requestAttr] = operation['x-postman-meta'][requestAttr];
+        //     }
+        // }
 
         // handle security
         // Only consider the first defined security object.
@@ -391,14 +460,10 @@ var Swagger2Postman = jsface.Class({ // eslint-disable-line
 
         _.forEach(acceptedPostmanVerbs, function (verb) {
             if (pathItem[verb]) {
-                items.push(
-                    self.buildItemFromOperation(
-                        lpath,
-                        verb.toUpperCase(),
-                        pathItem[verb],
-                        pathItem.parameters
-                    )
-                );
+                var item = self.buildItemFromOperation(lpath, verb.toUpperCase(), pathItem[verb], pathItem.parameters);
+                if (item) {
+                    items.push(item);
+                }
             }
         });
 
@@ -416,11 +481,11 @@ var Swagger2Postman = jsface.Class({ // eslint-disable-line
                 if (folderName) {
                     this.logger('Adding path item. path = ' + path + '   folder = ' + folderName);
                     if (folders.hasOwnProperty(folderName)) {
-                        folders[folderName].items = folders[folderName].items.concat(itemList);
+                        folders[folderName].item = folders[folderName].item.concat(itemList);
                     } else {
                         folders[folderName] = {
                             name: folderName,
-                            items: itemList
+                            item: itemList
                         };
                     }
                 } else {
@@ -428,7 +493,7 @@ var Swagger2Postman = jsface.Class({ // eslint-disable-line
                 }
             }
         }
-        this.collectionJson.items = items.concat(_.values(folders));
+        this.collectionJson.item = items.concat(_.values(folders));
     },
 
     convert: function (spec, cb) {
@@ -437,25 +502,36 @@ var Swagger2Postman = jsface.Class({ // eslint-disable-line
         SwaggerParser.validate(spec, function (err, api) {
             if (err) {
                 self.logger('spec is not valid: ' + err);
-                return cb(err, null);
+                cb(err, null);
+                return;
             }
             self.logger('validation of spec complete...');
 
-            self.globalConsumes = api.consumes || [];
+            self.loadSchema(function () {
 
-            self.securityDefinitions = api.securityDefinitions || {};
+                self.globalConsumes = api.consumes || [];
 
-            self.globalSecurity = api.security || [];
+                self.securityDefinitions = api.securityDefinitions || {};
 
-            self.handleInfo(api);
+                self.globalSecurity = api.security || [];
 
-            self.setBasePath(api);
+                self.handleInfo(api);
 
-            self.handlePaths(api.paths);
+                self.setBasePath(api);
 
-            self.logger('Conversion successful');
+                self.handlePaths(api.paths);
 
-            return cb(null, self.collectionJson);
+                self.logger('Conversion successful');
+
+                var valid = self.validate(self.collectionJson);
+                if (valid) {
+                    self.logger('Generated collection valid.');
+                } else {
+                    self.logger('Generated collection invalid: ' + JSON.stringify(self.validate.errors));
+                }
+
+                return cb(null, self.collectionJson);
+            });
 
         });
     },
