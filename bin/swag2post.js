@@ -27,8 +27,7 @@ function writeJSON(data, options, callback) {
     }
 
     try {
-        // json = JSON.stringify(data, null, options.pretty ? 4 : 0);
-        json = JSON.stringify(data);
+        json = JSON.stringify(data, null, options.pretty ? 4 : 0);
         fs.writeFile(options.output, json, writeFlag, callback);
     } catch (e) {
         callback(e);
@@ -45,6 +44,7 @@ program
     .option('-i, --input <location>', 'URL or file path of the Swagger specification')
     .option('-o, --output <path>', 'target file path for Postman Collection')
     .option('-w, --overwrite', 'Overwrite the output file if exists')
+    .option('-P, --pretty', 'Pretty print the output')
     .option('--include-query-params', 'Include query parameters', true)
     .option('--include-optional-query-params', 'Include optional query parameters', false)
     .option('--include-body-template', 'Include body template', false)

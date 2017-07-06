@@ -58,6 +58,9 @@
         "summary": "get info from the system",
         "description": "",
         "operationId": "infoAPI",
+        "consumes": [
+          "application/json"
+        ],
         "produces": [
           "application/json"
         ],
@@ -102,13 +105,22 @@
           "description": "kind of article",
           "type": "string",
           "maxLength": 255
+        },
+        "enabled": {
+          "description": "request enabled",
+          "type": "boolean"
+        },
+        "rating": {
+          "description": "numberical rating",
+          "type": "number"
+        },
+        "amount": {
+            "description": "cost of request",
+            "type": "number",
+            "format": "float"
         }
       },
       "required":["title","writer"],
-      "example":{
-        "title": "Postman To Swagger is so cool!",
-        "writer": "damien"
-      }
     },
     "articleRequestOutput": {
       "type": "object",

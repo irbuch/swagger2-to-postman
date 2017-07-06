@@ -5,8 +5,18 @@ info:
   contact:
     email: apiteam@wordnik.com
 
+consumes:
+  - multipart/form-data
+
 produces:
   - application/vnd.cia.v1+json
+
+securityDefinitions:
+  basic:
+    type: basic
+
+security:
+  - basic: []
 
 schemes:
   - https
@@ -25,6 +35,13 @@ paths:
       responses:
         default:
           description: success
+
+  /temp:
+    parameters:
+      - name: example
+        in: header
+        required: false
+        type: string
 
   /users/me:
     get:

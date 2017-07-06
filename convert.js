@@ -96,98 +96,33 @@ var Swagger2Postman = jsface.Class({ // eslint-disable-line
         return retVal;
     },
 
-    // getDefinitonByKey: function (key) {
-    //     return this.definitions[key];
-    // },
-    //
-    // getDefinitonRefKey: function (ref) {
-    //     if (ref.indexOf('#/definitions/') > -1) {
-    //         return ref.split('/').pop();
-    //     }
-    //     return null;
-    // },
+    generateTestsFromSpec: function (responses, path) {
+        var tests = [];
+        var statusCodes = _.keys(responses);
 
-    // resolveDefiniton: function (definition) {
-    //     if (definition.$ref) {
-    //         var key = this.getDefinitonRefKey(definition.$ref);
-    //         if (key) {
-    //             return this.getDefinitonByKey(key);
-    //         }
-    //     }
-    //     return definition;
-    // },
+        this.logger('Adding Test for: ' + path);
 
-    // getAllReferencedDefinitions: function (definition, referenced) {
-    //     // If the definition is a reference, and we haven't already added it,
-    //     // resolve and add it, and then find any references in the resolved definition.
-    //     if (definition.$ref) {
-    //         var key = this.getDefinitonRefKey(definition.$ref);
-    //         if (key && !referenced.hasOwnProperty(key)) {
-    //             definition = this.getDefinitonByKey(key);
-    //             if (definition) {
-    //                 referenced[key] = definition;
-    //                 return this.getAllReferencedDefinitions(definition, referenced);
-    //             }
-    //         }
-    //     // If the definition is an object, find any references in its propertes and
-    //     // additionalProperties definitions.
-    //     } else if (definition.type === 'object') {
-    //         for (var name in definition.properties) {
-    //             if (definition.properties.hasOwnProperty(name)) {
-    //                 var propertyDefinition = definition.properties[name];
-    //                 referenced = this.getAllReferencedDefinitions(propertyDefinition, referenced);
-    //             }
-    //         }
-    //         if (definition.additionalProperties) {
-    //             referenced = this.getAllReferencedDefinitions(definition.additionalProperties, referenced);
-    //         }
-    //     // If the definition is an array, find any references in its items definition.
-    //     } else if (definition.type === 'array' && definition.items) {
-    //         return this.getAllReferencedDefinitions(definition.items, referenced);
-    //     }
-    //     // Otherwise, return the current references.
-    //     return referenced;
-    // },
+        tests.push('tests["Status code is expected"] = [' +
+          statusCodes.join() + '].indexOf(responseCode.code) > -1;');
 
-    // generateTestsFromSpec: function (responses, path) {
-    //     var self = this;
-    //     var tests = [];
-    //     var statusCodes = _.keys(responses);
-    //
-    //     if (statusCodes.length > 0) {
-    //         this.logger('Adding Test for: ' + path);
-    //
-    //         var statusCodesString = statusCodes.join();
-    //
-    //         tests.push('tests["Status code is expected"] = [' +
-    //           statusCodesString + '].indexOf(responseCode.code) > -1;');
-    //
-    //         // set test in case of success
-    //         _.forEach(responses, function (response, status) {
-    //             if (Number(status) >= 200 && Number(status) < 300 && response && response.schema) {
-    //                 var schema = self.resolveDefiniton(response.schema);
-    //
-    //                 if (schema && schema.type) {
-    //                     var fullSchema = _.clone(schema);
-    //                     fullSchema.definitions = self.getAllReferencedDefinitions(schema, {});
-    //
-    //                     tests.push('');
-    //                     tests.push('if (responseCode.code === ' + status + ') {');
-    //                     tests.push('\tvar data = JSON.parse(responseBody);');
-    //                     tests.push('\tvar schema = ' + JSON.stringify(fullSchema, null, 4) + ';');
-    //                     tests.push('\ttests["Response Body respects JSON schema documentation"]'
-    //                         + ' = tv4.validate(data, schema);');
-    //                     tests.push('\tif(tests["Response Body respect JSON schema documentation"] === false){');
-    //                     tests.push('\t\tconsole.log(tv4.error);');
-    //                     tests.push('\t}');
-    //                     tests.push('}');
-    //                 }
-    //             }
-    //         });
-    //     }
-    //
-    //     return tests;
-    // },
+        // set test in case of success
+        _.forEach(responses, function (response, status) {
+            if (Number(status) >= 200 && Number(status) < 300 && response && response.schema) {
+                tests.push('');
+                tests.push('if (responseCode.code === ' + status + ') {');
+                tests.push('\tvar data = JSON.parse(responseBody);');
+                tests.push('\tvar schema = ' + JSON.stringify(response.schema, null, 4) + ';');
+                tests.push('\ttests["Response Body respects JSON schema documentation"]'
+                    + ' = tv4.validate(data, schema);');
+                tests.push('\tif(tests["Response Body respect JSON schema documentation"] === false){');
+                tests.push('\t\tconsole.log(tv4.error);');
+                tests.push('\t}');
+                tests.push('}');
+            }
+        });
+
+        return tests;
+    },
 
     getDefaultValue: function (type) {
         switch (type) {
@@ -197,17 +132,15 @@ var Swagger2Postman = jsface.Class({ // eslint-disable-line
             case 'number': {
                 return 0.0;
             }
-            case 'array': {
-                return '[]';
-            }
             case 'boolean': {
                 return true;
             }
             case 'string': {
                 return '""';
             }
+            /* istanbul ignore next */
             default: {
-                return '{}';
+                return null;
             }
         }
     },
@@ -241,10 +174,7 @@ var Swagger2Postman = jsface.Class({ // eslint-disable-line
     },
 
     buildUrl: function (basePath, path) {
-        var lpath = path;
-        if (lpath.length > 0 && lpath[0] === '/') {
-            lpath = lpath.substring(1);
-        }
+        var lpath = path.substring(1);
         lpath = lpath.split('/');
 
         var urlObject = _.clone(basePath);
@@ -258,36 +188,28 @@ var Swagger2Postman = jsface.Class({ // eslint-disable-line
     },
 
     applySecurity: function (security, request) {
-        // Only consider the first defined security object.
-        // Swagger defines that there is a logical OR between the different security objects in the array -
-        // i.e. only one needs to/should be used at a time
         for (var securityRequirementName in security) {
-            if (security.hasOwnProperty(securityRequirementName) &&
-                security[securityRequirementName] &&
-                this.securityDefinitions[securityRequirementName]) {
+            if (this.securityDefinitions[securityRequirementName]) {
 
                 // TODO: add usage of scopes
-                // var scopes = securityObject[securityRequirementName];
+                // var scopes = security[securityRequirementName];
                 var securityDefinition = this.securityDefinitions[securityRequirementName];
                 // TODO: support apiKey security
-                if (securityDefinition) {
-                    if (securityDefinition.type === 'oauth2') {
-                        var tokenVarName = securityRequirementName + '_access_token';
-                        request.headers.push({
-                            key: 'Authorization',
-                            value: 'Bearer {{' + tokenVarName + '}}'
-                        });
-                    } else if (securityDefinition.type === 'basic') {
-                        request.auth = {
-                            type: 'basic',
-                            basic: {
-                                username: '{{' + securityRequirementName + '_username}}',
-                                password: '{{' + securityRequirementName + '_password}}',
-                                saveHelperData: true,
-                                showPassword: true
-                            }
-                        };
-                    }
+                if (securityDefinition.type === 'oauth2') {
+                    request.headers.push({
+                        key: 'Authorization',
+                        value: 'Bearer {{' + securityRequirementName + '_access_token}}'
+                    });
+                } else if (securityDefinition.type === 'basic') {
+                    request.auth = {
+                        type: 'basic',
+                        basic: {
+                            username: '{{' + securityRequirementName + '_username}}',
+                            password: '{{' + securityRequirementName + '_password}}',
+                            saveHelperData: true,
+                            showPassword: true
+                        }
+                    };
                 }
             }
         }
@@ -419,7 +341,6 @@ var Swagger2Postman = jsface.Class({ // eslint-disable-line
         };
 
         var thisParams = this.mergeParamLists(paramsFromPathItem, operation.parameters);
-        // var thisResponses = operation.responses;
         var thisConsumes = operation.consumes || this.globalConsumes;
         var thisSecurity = operation.security || this.globalSecurity;
 
@@ -427,59 +348,47 @@ var Swagger2Postman = jsface.Class({ // eslint-disable-line
         // Handle custom swagger attributes for postman aws integration
         if (operation[META_KEY]) {
             for (var requestAttr in operation[META_KEY]) {
-                if (operation[META_KEY].hasOwnProperty(requestAttr)) {
-                    request[requestAttr] = operation[META_KEY][requestAttr];
-                }
+                request[requestAttr] = operation[META_KEY][requestAttr];
             }
         }
 
         // handle security
+        // Only consider the first defined security object.
+        // Swagger defines that there is a logical OR between the different security objects in the array -
+        // i.e. only one needs to/should be used at a time
         if (thisSecurity[0]) {
             request = this.applySecurity(thisSecurity[0], request);
         }
 
         // set data and headers
         for (var param in thisParams) {
-            if (thisParams.hasOwnProperty(param) && thisParams[param]) {
-                this.logger('Processing param: ' + JSON.stringify(param));
-                request = this.processParameter(thisParams[param], thisConsumes, request);
-            }
+            this.logger('Processing param: ' + JSON.stringify(param));
+            request = this.processParameter(thisParams[param], thisConsumes, request);
         }
 
         request = this.applyDefaultBodyMode(thisConsumes, request);
 
-        // var tests = this.generateTestsFromSpec(thisResponses, path);
-        // if (tests && tests.length > 0) {
-        //     item.events.push({
-        //         listen: 'test',
-        //         script: {
-        //             type: 'text/javascript',
-        //             exec: tests
-        //         }
-        //     });
-        // }
+        var tests = this.generateTestsFromSpec(operation.responses, path);
+        item.events.push({
+            listen: 'test',
+            script: {
+                type: 'text/javascript',
+                exec: tests
+            }
+        });
 
         return item;
     },
 
     buildItemListFromPath: function (path, pathItem) {
         var self = this;
-        var lpath = path;
-        if (pathItem.$ref) {
-            this.logger('Error - cannot handle $ref attributes');
-            return null;
-        }
-
         var items = [];
+        // replace path variables {petId} with :petId
+        var lpath = path.replace(/{/g, ':').replace(/}/g, '');
 
         var acceptedPostmanVerbs = [
             'get', 'put', 'post', 'patch', 'delete', 'copy', 'head', 'options',
             'link', 'unlink', 'purge', 'lock', 'unlock', 'propfind', 'view'];
-
-        // replace path variables {petId} with :petId
-        if (lpath) {
-            lpath = lpath.replace(/{/g, ':').replace(/}/g, '');
-        }
 
         _.forEach(acceptedPostmanVerbs, function (verb) {
             if (pathItem[verb]) {
@@ -494,19 +403,6 @@ var Swagger2Postman = jsface.Class({ // eslint-disable-line
             }
         });
 
-        // for (var i = 0; i < acceptedPostmanVerbs.length; i++) {
-        //     var verb = acceptedPostmanVerbs[i];
-        //     if (pathItem[verb]) {
-        //         items.push(
-        //             this.buildItemFromOperation(
-        //                 lpath,
-        //                 verb.toUpperCase(),
-        //                 pathItem[verb],
-        //                 pathItem.parameters
-        //             )
-        //         );
-        //     }
-        // }
         return items;
     },
 
@@ -515,23 +411,21 @@ var Swagger2Postman = jsface.Class({ // eslint-disable-line
         var items = [];
         // Add a folder for each path
         for (var path in paths) {
-            if (paths.hasOwnProperty(path)) {
+            var itemList = this.buildItemListFromPath(path, paths[path]);
+            if (itemList && itemList.length > 0) {
                 var folderName = this.getFolderNameForPath(path);
-                this.logger('Adding path item. path = ' + path + '   folder = ' + folderName);
-                var itemList = this.buildItemListFromPath(path, paths[path]);
-                if (itemList && itemList.length > 0) {
-                    if (folderName) {
-                        if (folders.hasOwnProperty(folderName)) {
-                            folders[folderName].items = folders[folderName].items.concat(itemList);
-                        } else {
-                            folders[folderName] = {
-                                name: folderName,
-                                items: itemList
-                            };
-                        }
+                if (folderName) {
+                    this.logger('Adding path item. path = ' + path + '   folder = ' + folderName);
+                    if (folders.hasOwnProperty(folderName)) {
+                        folders[folderName].items = folders[folderName].items.concat(itemList);
                     } else {
-                        items = items.concat(itemList);
+                        folders[folderName] = {
+                            name: folderName,
+                            items: itemList
+                        };
                     }
+                } else {
+                    items = items.concat(itemList);
                 }
             }
         }

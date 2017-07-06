@@ -1,11 +1,15 @@
 {
   "name": "swagger2-to-postman",
-  "version": "1.1.4",
-  "description": "A module to convert swagger 2.0 JSONs to Postman v2.0",
+  "version": "1.1.7",
+  "description": "A module to convert swagger 2.0 JSONs to Postman Collection Format v2",
   "main": "convert.js",
+  "bin": {
+    "swag2post": "./bin/swag2post.js"
+  },
   "scripts": {
-    "test": "scripts/test.sh",
-    "coverage": "istanbul cover _mocha -- test/**"
+    "test": "mocha test/*-spec.js",
+    "coverage": "istanbul cover _mocha -- test/**",
+    "lint": "eslint convert.js bin/ test/"
   },
   "directories": {
     "bin": "bin"
@@ -13,7 +17,7 @@
   "dependencies": {
     "commander": "^2.11.0",
     "jsface": "^2.4.9",
-    "lodash": "3.10.0",
+    "lodash": "^4.17.0",
     "swagger-parser": "^3.4.1",
     "uuid": "^3.1.0"
   },
@@ -27,7 +31,7 @@
     "newman"
   ],
   "author": "Postman Labs <help@getpostman.com>",
-  "license": "Apache 2.0",
+  "license": "Apache-2.0",
   "bugs": {
     "url": "https://github.com/postmanlabs/swagger2-postman/issues"
   },

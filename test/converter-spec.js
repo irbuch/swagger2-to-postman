@@ -1,4 +1,5 @@
 'use strict';
+var _ = require('lodash');
 var expect = require('expect.js');
 var Swagger2Postman = require('../convert.js');
 var fs = require('fs');
@@ -75,9 +76,21 @@ describe('converter tests', function () {
         };
         var samplePath = path.join(__dirname, 'data', 'sampleswagger.json');
         var converter = new Swagger2Postman(options);
-        converter.setLogger(console.log); // eslint-disable-line
+        converter.setLogger(_.noop);
         converter.convert(samplePath, function (err, result) {
             expect(result.items[0].items[0].request.body.raw.indexOf('status') > 0);
+            done(err);
+        });
+    });
+
+    it('should obey the includeBodyTemplate option - another', function (done) {
+        var options = {
+            includeBodyTemplate: true
+        };
+        var samplePath = path.join(__dirname, 'data', 'swagger2.json');
+        var converter = new Swagger2Postman(options);
+        converter.convert(samplePath, function (err, result) {
+            expect(result.items[1].items[0].request.body.raw.indexOf('rating') > 0);
             done(err);
         });
     });
