@@ -5,6 +5,7 @@ var _ = require('lodash');
 var SwaggerParser = require('swagger-parser');
 
 var META_KEY = 'x-postman-meta';
+var POSTMAN_SCHEMA = 'https://schema.getpostman.com/json/collection/v2.0.0/collection.json';
 
 var Swagger2Postman = jsface.Class({ // eslint-disable-line
     constructor: function (options) {
@@ -12,14 +13,13 @@ var Swagger2Postman = jsface.Class({ // eslint-disable-line
             info: {
                 name: '',
                 _postman_id: uuidv4(),
-                schema: 'https://schema.getpostman.com/json/collection/v2.1.0/collection.json'
+                schema: POSTMAN_SCHEMA
             },
             items: []
         };
         this.basePath = {};
-        this.definitions = {};
-        this.paramDefinitions = {};
         this.securityDefinitions = {};
+        this.globalConsumes = [];
         this.globalSecurity = [];
         this.logger = _.noop;
 
@@ -145,7 +145,7 @@ var Swagger2Postman = jsface.Class({ // eslint-disable-line
         }
     },
 
-    getModelTemplate: function (schema, depth) {
+    getModelTemplate: function (schema) {
         if (schema.example) {
             return JSON.stringify(schema.example, null, 4);
         }
@@ -159,27 +159,27 @@ var Swagger2Postman = jsface.Class({ // eslint-disable-line
             for (name in properties) {
                 var propertySchema = properties[name];
                 if (!propertySchema.readOnly) {
-                    value = this.getModelTemplate(propertySchema, depth + 1);
+                    value = this.getModelTemplate(propertySchema);
                     definition.push('"' + name + '" : ' + value);
                 }
             }
             return JSON.stringify(JSON.parse('{' + definition.join(',') + '}'), null, '   ');
 
         } else if (schema.type === 'array') {
-            value = this.getModelTemplate(schema.items, depth + 1);
+            value = this.getModelTemplate(schema.items);
             return JSON.stringify(JSON.parse('[' + value + ']'), null, '   ');
         }
 
         return this.getDefaultValue(schema.type);
     },
 
-    buildUrl: function (basePath, path) {
+    buildUrl: function (path) {
         var lpath = path.substring(1);
         lpath = lpath.split('/');
 
-        var urlObject = _.clone(basePath);
-        if (basePath.hasOwnProperty('path')) {
-            urlObject.path = basePath.path.concat(lpath);
+        var urlObject = _.clone(this.basePath);
+        if (this.basePath.hasOwnProperty('path')) {
+            urlObject.path = this.basePath.path.concat(lpath);
         } else {
             urlObject.path = lpath;
         }
@@ -189,11 +189,10 @@ var Swagger2Postman = jsface.Class({ // eslint-disable-line
 
     applySecurity: function (security, request) {
         for (var securityRequirementName in security) {
-            if (this.securityDefinitions[securityRequirementName]) {
-
+            var securityDefinition = this.securityDefinitions[securityRequirementName];
+            if (securityDefinition) {
                 // TODO: add usage of scopes
                 // var scopes = security[securityRequirementName];
-                var securityDefinition = this.securityDefinitions[securityRequirementName];
                 // TODO: support apiKey security
                 if (securityDefinition.type === 'oauth2') {
                     request.headers.push({
@@ -252,7 +251,7 @@ var Swagger2Postman = jsface.Class({ // eslint-disable-line
                     value: 'application/json'
                 });
 
-                request.body.raw = this.getModelTemplate(param.schema, 0);
+                request.body.raw = this.getModelTemplate(param.schema);
             }
 
             if (!request.body.raw || request.body.raw === '') {
@@ -325,7 +324,7 @@ var Swagger2Postman = jsface.Class({ // eslint-disable-line
             return null;
         }
         var request = {
-            url: this.buildUrl(this.basePath, path),
+            url: this.buildUrl(path),
             // This field isn't in the 2.1 spec, but seems to be used by postman
             description: operation.description,
             auth: {},
@@ -442,17 +441,11 @@ var Swagger2Postman = jsface.Class({ // eslint-disable-line
             }
             self.logger('validation of spec complete...');
 
-            self.collectionId = uuidv4();
-
             self.globalConsumes = api.consumes || [];
 
             self.securityDefinitions = api.securityDefinitions || {};
 
             self.globalSecurity = api.security || [];
-
-            self.definitions = api.definitions || {};
-
-            self.paramDefinitions = api.parameters || {};
 
             self.handleInfo(api);
 
