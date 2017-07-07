@@ -49,7 +49,7 @@ describe('converter tests', function () {
 
     it('should obey the includeQueryParams option', function (done) {
         var options = {
-            includeQueryParams: false
+            includeQueryParams: false,
         };
         var samplePath = path.join(__dirname, 'data', 'sampleswagger.json');
         var converter = new Swagger2Postman(options);
@@ -61,7 +61,7 @@ describe('converter tests', function () {
 
     it('should obey the includeOptionalQueryParams option', function (done) {
         var opts = {
-            includeOptionalQueryParams: true
+            includeOptionalQueryParams: true,
         };
         var samplePath = path.join(__dirname, 'data', 'sampleswagger.json');
         var converter = new Swagger2Postman(opts);
@@ -73,7 +73,8 @@ describe('converter tests', function () {
 
     it('should obey the includeBodyTemplate option', function (done) {
         var options = {
-            includeBodyTemplate: true
+            includeBodyTemplate: true,
+            includeTests: true,
         };
         var samplePath = path.join(__dirname, 'data', 'sampleswagger.json');
         var converter = new Swagger2Postman(options);
@@ -86,7 +87,8 @@ describe('converter tests', function () {
 
     it('should obey the includeBodyTemplate option - another', function (done) {
         var options = {
-            includeBodyTemplate: true
+            includeBodyTemplate: true,
+            includeTests: true,
         };
         var samplePath = path.join(__dirname, 'data', 'swagger2.json');
         var converter = new Swagger2Postman(options);
@@ -108,7 +110,7 @@ describe('converter tests', function () {
 
     it('should obey the tagFilter option - tag not found', function (done) {
         var options = {
-            tagFilter: 'FOO'
+            tagFilter: 'FOO',
         };
         var samplePath = path.join(__dirname, 'data', 'swagger2.json');
         var converter = new Swagger2Postman(options);
@@ -123,7 +125,7 @@ describe('converter tests', function () {
 
     it('should obey the tagFilter option - tag found', function (done) {
         var options = {
-            tagFilter: 'SampleTag'
+            tagFilter: 'SampleTag',
         };
         var samplePath = path.join(__dirname, 'data', 'swagger2.json');
         var converter = new Swagger2Postman(options);

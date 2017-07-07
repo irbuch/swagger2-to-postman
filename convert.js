@@ -57,6 +57,9 @@ var Swagger2Postman = jsface.Class({ // eslint-disable-line
         this.options.includeBodyTemplate = typeof this.options.includeBodyTemplate === 'undefined' ?
             false : this.options.includeBodyTemplate;
 
+        this.options.includeTests = typeof this.options.includeTests === 'undefined' ?
+            false : this.options.includeTests;
+
         this.options.tagFilter = this.options.tagFilter || null;
     },
 
@@ -404,7 +407,6 @@ var Swagger2Postman = jsface.Class({ // eslint-disable-line
 
         var item = {
             name: operation.summary,
-            events: [],
             request: request,
             responses: []
         };
@@ -436,14 +438,17 @@ var Swagger2Postman = jsface.Class({ // eslint-disable-line
 
         request = this.applyDefaultBodyMode(thisConsumes, request);
 
-        var tests = this.generateTestsFromSpec(operation.responses, path);
-        item.events.push({
-            listen: 'test',
-            script: {
-                type: 'text/javascript',
-                exec: tests
-            }
-        });
+        if (this.options.includeTests === true) {
+            var tests = this.generateTestsFromSpec(operation.responses, path);
+            _.defaults(item, {events: []});
+            item.events.push({
+                listen: 'test',
+                script: {
+                    type: 'text/javascript',
+                    exec: tests
+                }
+            });
+        }
 
         return item;
     },

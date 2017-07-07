@@ -48,6 +48,7 @@ program
     .option('--include-query-params', 'Include query parameters', true)
     .option('--include-optional-query-params', 'Include optional query parameters', false)
     .option('--include-body-template', 'Include body template', false)
+    .option('--include-tests', 'Include tests of responses', false)
     .option('-t, --tag-filter', 'Include operations with specific tag', null)
     .action(function (options) {
         if (!options.input) {
