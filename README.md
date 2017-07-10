@@ -59,11 +59,20 @@ Options:
   -h, --help                       output usage information
 ```
 
-### Example
+### Examples
 
 ```bash
 swag2post convert -i http://petstore.swagger.io/v2/swagger.json -o petstore_collection.json --include-optional-query-params --include-body-template --include-tests
 ```
+
+```bash
+swag2post convert -i swagger.json -o petstore_collection.json
+```
+
+```bash
+swag2post convert -i swagger.yaml -o petstore_collection.json
+```
+
 
 ## As library
 
