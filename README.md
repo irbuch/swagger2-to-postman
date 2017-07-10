@@ -1,41 +1,116 @@
-# swagger20Postman
-Converter for swagger 2.0 JSON to Postman v2
+# Swagger2Postman
 
-convert.js provides a jsFace class - Swagger2Postman. Check test/tescrscript.js for basic usage.
+Converts [Swagger 2.0](https://swagger.io/specification/) API specification to [Postman v2 Collection](https://schema.getpostman.com/json/collection/v2.0.0/docs/index.html).
 
-Initialise class:
 
+**Features**
+
+- Validates the provided Swagger 2.0 API specification.
+* Supports JSON and YAML locally or via remote URL.
+* Validates generated Postman Collection aligns to Collection v2 schema.
+* Optionally generates example body based on provided definitions.
+* Optionally generates tests to validate responses and associated payload of response.
+* Works as CLI or library.
+
+
+## CLI
+
+```
+Usage: swag2post [command] [options]
+
+
+Options:
+
+  -V, --version  output the version number
+  -h, --help     output usage information
+
+
+Commands:
+
+  convert [options]   Convert Swagger v2 API specification to Postman v2 Collection
+```
+
+```
+Usage: convert [options]
+
+Convert Swagger v2 API specification to Postman v2 Collection
+
+
+Options:
+
+  -i, --input <location>           URL or file path of the Swagger specification
+  -o, --output <path>              target file path for Postman Collection
+  -w, --overwrite                  Overwrite the output file if exists
+  -c, --compact                    Compact the output
+  --include-query-params           Include query parameters
+  --include-optional-query-params  Include optional query parameters
+  --include-body-template          Include body template
+  --include-tests                  Include tests of responses
+  -t, --tag-filter                 Include operations with specific tag
+  -h, --help                       output usage information
+```
+
+### Example
+
+```bash
+swag2post convert -i http://petstore.swagger.io/v2/swagger.json -o petstore_collection.json --include-optional-query-params --include-body-template --include-tests
+```
+
+## As library
+
+convert.js provides a jsFace class - Swagger2Postman.
+
+Initialize class:
+
+```javascript
     var swaggerConverter = new Swagger2Postman();
+```
 
 Optionally, set a logger:
 
+```javascript
     swaggerConverter.setLogger(console.log);
+```
 
-Convert your Swagger 2.0 JSON:
+Convert your Swagger 2.0 API (json, yaml, and remote URL):
 
-    var convertResult = swaggerConverter.convert(swaggerJson);
-
-Check the result:
-
-    convertResult.status === "failed"
-for unsuccessful conversions. Check convertResult.message
-
-    convertResult.status === "passed"
-for successful conversions. Check convertResult.collection for the Postman collection JSON
-
+```javascript
+    var apiLocation = 'api.yaml';
+    swaggerConverter.convert(apiLocation, function (err, collection) {
+        if (err) {
+            console.error('failed to convert: ' + err);
+            return;
+        }
+        console.log(JSON.stringify(collection, null, 4));
+    });
+```
 
 Optional Configuration Parameters:
 The constructor can also take in a map of configuration options
 
-~~~
+```javascript
 var options = {
-  includeQueryParams: false,
-  tagFilter: "SampleTag"
+  includeQueryParams: true,
+  includeOptionalQueryParams: true,
+  includeBodyTemplate: true,
+  includeTests: true,
+  tagFilter: 'SampleTag'
 };
 
 var swaggerConverter = new Swagger2Postman(options);
-~~~
+```
 
-valid options are:
-includeQueryParams - (default true) Include query string parameters in the request url.
-tagFilter - (default none) Filter resources that have a tag that matches this value.
+### Valid Options
+
+* `includeQueryParams` - (default *true*) Include query string parameters in the request URL.
+* `includeOptionalQueryParams` - (default *false*) Include optional query string parameters in the request URL.
+* `includeBodyTemplate` - (default *false*) Include example body when body parameter defined and `consumes` includes `application/.*json`.
+* `includeTests` - (default *false*) Include test(s) that validate the defined responses for an operation.
+* `tagFilter` - (default *null*) Filter resources that have a tag that matches this value.
+
+
+## TODO
+
+* Support additional authentication methods.
+* Support Swagger vendor extensions.
+* Support generating associated Postman Environment.
