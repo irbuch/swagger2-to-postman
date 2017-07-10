@@ -1,0 +1,74 @@
+swagger: "2.0"
+info:
+  title: Cloud API
+  version: "0.3.0"
+  contact:
+    email: apiteam@wordnik.com
+
+consumes:
+  - multipart/form-data
+
+securityDefinitions:
+  basic:
+    type: basic
+
+security:
+  - unknown: []
+
+schemes:
+  - https
+
+paths:
+  /:
+    parameters:
+      - name: sample
+        in: header
+        required: false
+        type: string
+    get:
+      responses:
+        default:
+          description: success
+
+  /temp:
+    parameters:
+      - name: example
+        in: header
+        required: false
+        type: string
+
+  /users/me:
+    get:
+      summary: View User
+      operationId: whoAmI
+      tags: [Admin]
+      description: |
+        Provides an endpoint to retrieve details of the logged in User.
+
+        Example Request:
+
+        ```
+        GET /users/me HTTP/1.1
+        Host: petstore.swagger.io
+        Authorization: Bearer {{access_token}}
+        Accept: application/vnd.cia.v1+json
+
+        <response>
+        ```
+      responses:
+        200:
+          description: Logged in User
+          examples:
+            name: tester
+          schema:
+            title: User
+            description: An authenticated user
+            type: object
+            required:
+              - name
+            properties:
+              name:
+                title: username
+                description: The user's login name.
+                type: string
+                example: tester
