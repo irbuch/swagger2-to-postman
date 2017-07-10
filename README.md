@@ -2,8 +2,17 @@
 
 Converts [Swagger 2.0](https://swagger.io/specification/) API specification to [Postman v2 Collection](https://schema.getpostman.com/json/collection/v2.0.0/docs/index.html).
 
+## Table of Contents
 
-**Features**
+- [Features](#features)
+- [CLI](#cli)
+    * [Examples](#examples)
+- [As Library](#as-library)
+    * [Valid Options](#valid-options)
+- [TODO](#todo)
+
+
+## Features
 
 - Validates the provided Swagger 2.0 API specification.
 * Supports JSON and YAML locally or via remote URL.
