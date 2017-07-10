@@ -64,6 +64,7 @@ program
             includeQueryParams: options.includeQueryParams,
             includeOptionalQueryParams: options.includeOptionalQueryParams,
             includeBodyTemplate: options.includeBodyTemplate,
+            includeTests: options.includeTests,
             tagFilter: options.tagFilter,
         };
         var converter = new Swagger2Postman(opts);
