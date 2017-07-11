@@ -98,6 +98,18 @@ describe('converter tests', function () {
         });
     });
 
+    it('should obey the disableCollectionValidation option', function (done) {
+        var options = {
+            disableCollectionValidation: true,
+        };
+        var samplePath = path.join(__dirname, 'data', 'swagger2.json');
+        var converter = new Swagger2Postman(options);
+        converter.convert(samplePath, function (err, result) {
+            expect(result).to.be.ok();
+            done(err);
+        });
+    });
+
     it('should convert path paramters to postman-compatible paramters', function (done) {
         var samplePath = path.join(__dirname, 'data', 'swagger2-with-params.json');
         var converter = new Swagger2Postman();

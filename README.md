@@ -55,6 +55,7 @@ Options:
   --include-optional-query-params  Include optional query parameters
   --include-body-template          Include body template
   --include-tests                  Include tests of responses
+  --disable-collection-validation  Disable validation of the generated Collection
   -t, --tag-filter <tag>           Include operations with specific tag
   --host <hostname>                Name of API host to use. Overrides value within provided API specification.
   -h, --help                       output usage information
@@ -113,6 +114,7 @@ var options = {
   includeOptionalQueryParams: true,
   includeBodyTemplate: true,
   includeTests: true,
+  disableCollectionValidation: false,
   tagFilter: 'SampleTag',
   host: 'my.example.com',
 };
@@ -126,6 +128,7 @@ var swaggerConverter = new Swagger2Postman(options);
 * `includeOptionalQueryParams` - (default *false*) Include optional query string parameters in the request URL.
 * `includeBodyTemplate` - (default *false*) Include example body when body parameter defined and `consumes` includes `application/.*json`.
 * `includeTests` - (default *false*) Include test(s) that validate the defined responses for an operation.
+* `disableCollectionValidation` - (default *false*) Disable downloading Postman Collection Schema and validating the generated collection.
 * `tagFilter` - (default *null*) Filter resources that have a tag that matches this value.
 * `host` - (default *null*) Name of the API host. Overrides the value within specification.
 

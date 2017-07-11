@@ -1,3 +1,4 @@
+/* eslint no-console: ["error", { allow: ["time", "timeEnd"] }] */
 'use strict';
 var https = require('https');
 var uuidv4 = require('uuid/v4');
@@ -61,6 +62,9 @@ var Swagger2Postman = jsface.Class({ // eslint-disable-line
         this.options.includeTests = typeof this.options.includeTests === 'undefined' ?
             false : this.options.includeTests;
 
+        this.options.disableCollectionValidation = typeof this.options.disableCollectionValidation === 'undefined' ?
+            false : this.options.disableCollectionValidation;
+
         this.options.tagFilter = this.options.tagFilter || null;
 
         this.options.host = this.options.host || null;
@@ -72,6 +76,11 @@ var Swagger2Postman = jsface.Class({ // eslint-disable-line
 
     loadSchema: function (cb) {
         var self = this;
+
+        if (this.options.disableCollectionValidation) {
+            cb();
+            return;
+        }
 
         https.get(POSTMAN_SCHEMA, function (res) {
             var statusCode = res.statusCode;
@@ -142,9 +151,8 @@ var Swagger2Postman = jsface.Class({ // eslint-disable-line
         if (pathUrl === '/') {
             return null;
         }
-        this.logger('Getting folder name for path: ' + pathUrl);
         var folderName = pathUrl.split('/')[1];
-        this.logger('folderName: ' + folderName);
+        this.logger('Mapping path: ' + pathUrl + ' ==> folderName: ' + folderName);
         return folderName;
     },
 
@@ -224,24 +232,23 @@ var Swagger2Postman = jsface.Class({ // eslint-disable-line
             return JSON.stringify(schema.example, null, 4);
         }
 
-        var definition = [];
-        var properties = schema.properties;
-        var name;
         var value;
 
         if (schema.type === 'object' || schema.properties) {
-            for (name in properties) {
-                var propertySchema = properties[name];
+            var definition = [];
+
+            for (var name in schema.properties) {
+                var propertySchema = schema.properties[name];
                 if (!propertySchema.readOnly) {
                     value = this.getModelTemplate(propertySchema);
                     definition.push('"' + name + '" : ' + value);
                 }
             }
-            return JSON.stringify(JSON.parse('{' + definition.join(',') + '}'), null, '   ');
+            return JSON.stringify(JSON.parse('{' + definition.join(',') + '}'), null, 4);
 
         } else if (schema.type === 'array') {
             value = this.getModelTemplate(schema.items);
-            return JSON.stringify(JSON.parse('[' + value + ']'), null, '   ');
+            return JSON.stringify(JSON.parse('[' + value + ']'), null, 4);
         }
 
         return this.getDefaultValue(schema.type);
@@ -265,6 +272,7 @@ var Swagger2Postman = jsface.Class({ // eslint-disable-line
         for (var securityRequirementName in security) {
             var securityDefinition = this.securityDefinitions[securityRequirementName];
             if (securityDefinition) {
+                this.logger('Adding security details to request of type: ' + securityDefinition.type);
                 if (securityDefinition.type === 'oauth2') {
                     request.auth = {
                         type: securityDefinition.type,
@@ -441,6 +449,7 @@ var Swagger2Postman = jsface.Class({ // eslint-disable-line
             operation.tags &&
             operation.tags.indexOf(this.options.tagFilter) === -1) {
             // Operation has tags that don't match the filter
+            this.logger('Excluding ' + method + ' ' + path + ' due to tagFilter: ' + this.options.tagFilter);
             return null;
         }
         var request = {
@@ -517,6 +526,7 @@ var Swagger2Postman = jsface.Class({ // eslint-disable-line
 
         _.forEach(supportedVerbs, function (verb) {
             if (pathItem[verb]) {
+                self.logger('Processing operation ' + verb.toUpperCase() + ' ' + path);
                 var item = self.buildItemFromOperation(lpath, verb.toUpperCase(), pathItem[verb], pathItem.parameters);
                 if (item) {
                     items.push(item);
@@ -536,7 +546,7 @@ var Swagger2Postman = jsface.Class({ // eslint-disable-line
             if (itemList && itemList.length > 0) {
                 var folderName = this.getFolderNameForPath(path);
                 if (folderName) {
-                    this.logger('Adding path item. path = ' + path + '   folder = ' + folderName);
+                    this.logger('Adding path item to folder: ' + folderName);
                     if (folders.hasOwnProperty(folderName)) {
                         folders[folderName].item = folders[folderName].item.concat(itemList);
                     } else {
@@ -547,6 +557,7 @@ var Swagger2Postman = jsface.Class({ // eslint-disable-line
                         };
                     }
                 } else {
+                    this.logger('Adding path item');
                     items = items.concat(itemList);
                 }
             }
@@ -571,7 +582,12 @@ var Swagger2Postman = jsface.Class({ // eslint-disable-line
     convert: function (spec, cb) {
         var self = this;
 
+        this.logger('using options: ' + JSON.stringify(this.options, null, 4));
+        this.logger('reading API spec from: ' + JSON.stringify(spec));
+
+        console.time('## API Spec Loaded and Validated in');
         SwaggerParser.validate(spec, function (err, api) {
+            console.timeEnd('## API Spec Loaded and Validated in');
             if (err) {
                 self.logger('spec is not valid: ' + err);
                 cb(err, null);
@@ -579,7 +595,13 @@ var Swagger2Postman = jsface.Class({ // eslint-disable-line
             }
             self.logger('validation of spec complete...');
 
+            if (!self.options.disableCollectionValidation) {
+                console.time('## Postman Schema Loaded in');
+            }
             self.loadSchema(function () {
+                if (!self.options.disableCollectionValidation) {
+                    console.timeEnd('## Postman Schema Loaded in');
+                }
 
                 self.globalConsumes = api.consumes || [];
 
@@ -597,12 +619,16 @@ var Swagger2Postman = jsface.Class({ // eslint-disable-line
 
                 self.logger('Conversion successful');
 
-                var valid = self.validate(self.collectionJson);
-                /* istanbul ignore else */
-                if (valid) {
-                    self.logger('Generated collection valid.');
-                } else {
-                    self.logger('Generated collection invalid: ' + JSON.stringify(self.validate.errors));
+                if (!self.options.disableCollectionValidation) {
+                    console.time('## Collection Validated in');
+                    var valid = self.validate(self.collectionJson);
+                    console.timeEnd('## Collection Validated in');
+                    /* istanbul ignore else */
+                    if (valid) {
+                        self.logger('Generated collection valid.');
+                    } else {
+                        self.logger('Generated collection invalid: ' + JSON.stringify(self.validate.errors));
+                    }
                 }
 
                 return cb(null, self.collectionJson);
