@@ -142,13 +142,9 @@ var Swagger2Postman = jsface.Class({ // eslint-disable-line
         if (pathUrl === '/') {
             return null;
         }
-        var segments = pathUrl.split('/');
-
         this.logger('Getting folder name for path: ' + pathUrl);
-        this.logger('Segments: ' + JSON.stringify(segments));
-
-        var folderName = segments[1];
-        this.logger('For path ' + pathUrl + ', returning folderName ' + folderName);
+        var folderName = pathUrl.split('/')[1];
+        this.logger('folderName: ' + folderName);
         return folderName;
     },
 
@@ -252,10 +248,10 @@ var Swagger2Postman = jsface.Class({ // eslint-disable-line
     },
 
     buildUrl: function (path) {
-        var lpath = path.substring(1);
-        lpath = lpath.split('/');
-
+        // skip the starting '/' to avoid empty space being added as the initial value
+        var lpath = path.substring(1).split('/');
         var urlObject = _.clone(this.basePath);
+
         if (this.basePath.hasOwnProperty('path')) {
             urlObject.path = this.basePath.path.concat(lpath);
         } else {
@@ -269,7 +265,6 @@ var Swagger2Postman = jsface.Class({ // eslint-disable-line
         for (var securityRequirementName in security) {
             var securityDefinition = this.securityDefinitions[securityRequirementName];
             if (securityDefinition) {
-                // TODO: support apiKey security
                 if (securityDefinition.type === 'oauth2') {
                     request.auth = {
                         type: securityDefinition.type,
@@ -285,7 +280,8 @@ var Swagger2Postman = jsface.Class({ // eslint-disable-line
                     _.defaults(request, {header: []});
                     request.header.push({
                         key: 'Authorization',
-                        value: 'Bearer {{' + securityRequirementName + '_access_token}}'
+                        value: 'Bearer {{' + securityRequirementName + '_access_token}}',
+                        description: securityDefinition.description,
                     });
 
                 } else if (securityDefinition.type === 'basic') {
@@ -296,6 +292,24 @@ var Swagger2Postman = jsface.Class({ // eslint-disable-line
                             password: '{{' + securityRequirementName + '_password}}'
                         }
                     };
+
+                /* istanbul ignore else */
+                } else if (securityDefinition.type === 'apiKey') {
+                    if (securityDefinition.in === 'header') {
+                        _.defaults(request, {header: []});
+                        request.header.push({
+                            key: securityDefinition.name,
+                            value: '{{' + securityRequirementName + '_apikey}}',
+                            description: securityDefinition.description,
+                        });
+                    } else {
+                        _.defaults(request.url, {query: []});
+                        request.url.query.push({
+                            key: securityDefinition.name,
+                            value: '{{' + securityRequirementName + '_apikey}}',
+                            description: securityRequirementName.description,
+                        });
+                    }
                 }
             }
         }

@@ -132,6 +132,5 @@ var swaggerConverter = new Swagger2Postman(options);
 
 ## TODO
 
-* Support additional authentication methods.
 * Support Swagger vendor extensions.
 * Support generating associated Postman Environment.
