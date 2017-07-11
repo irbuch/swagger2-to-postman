@@ -62,6 +62,8 @@ var Swagger2Postman = jsface.Class({ // eslint-disable-line
             false : this.options.includeTests;
 
         this.options.tagFilter = this.options.tagFilter || null;
+
+        this.options.host = this.options.host || null;
     },
 
     setLogger: function (func) {
@@ -115,12 +117,16 @@ var Swagger2Postman = jsface.Class({ // eslint-disable-line
     },
 
     setBasePath: function (api) {
-        this.basePath.host = 'localhost';
-        if (api.host) {
-            // This should be `domain` according to the specs, but postman seems
-            // to only accept `host`.
+        // This should be `domain` according to the specs, but postman seems
+        // to only accept `host`.
+        if (this.options.host) {
+            this.basePath.host = this.options.host;
+        } else if (api.host) {
             this.basePath.host = api.host;
+        } else {
+            this.basePath.host = 'localhost';
         }
+
         if (api.basePath) {
             this.basePath.path = api.basePath.replace(/\/+$/, '').split('/');
         }

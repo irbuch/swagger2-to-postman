@@ -43,13 +43,14 @@ program
     .description('Convert Swagger v2 API specification to Postman v2 Collection')
     .option('-i, --input <location>', 'URL or file path of the Swagger specification')
     .option('-o, --output <path>', 'target file path for Postman Collection')
-    .option('-w, --overwrite', 'Overwrite the output file if exists')
+    .option('-w, --overwrite', 'Overwrite the output file if exists', false)
     .option('-c, --compact', 'Compact the output', false)
     .option('--include-query-params', 'Include query parameters', true)
     .option('--include-optional-query-params', 'Include optional query parameters', false)
     .option('--include-body-template', 'Include body template', false)
     .option('--include-tests', 'Include tests of responses', false)
     .option('-t, --tag-filter', 'Include operations with specific tag', null)
+    .option('--host', 'Name of API host to use. Overrides value within provided API specification.', null)
     .action(function (options) {
         if (!options.input) {
             console.error('Input file must be specified!');
@@ -66,6 +67,7 @@ program
             includeBodyTemplate: options.includeBodyTemplate,
             includeTests: options.includeTests,
             tagFilter: options.tagFilter,
+            host: options.host,
         };
         var converter = new Swagger2Postman(opts);
         converter.setLogger(console.log);

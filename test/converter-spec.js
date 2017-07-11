@@ -135,6 +135,27 @@ describe('converter tests', function () {
         });
     });
 
+    it('should default the host to "localhost"', function (done) {
+        var samplePath = path.join(__dirname, 'data', 'swagger2.json');
+        var converter = new Swagger2Postman();
+        converter.convert(samplePath, function (err, result) {
+            expect(result.item[0].item[0].request.url.host).to.be('localhost');
+            done(err);
+        });
+    });
+
+    it('should obey the host option', function (done) {
+        var options = {
+            host: 'my.example.com',
+        };
+        var samplePath = path.join(__dirname, 'data', 'swagger2.json');
+        var converter = new Swagger2Postman(options);
+        converter.convert(samplePath, function (err, result) {
+            expect(result.item[0].item[0].request.url.host).to.be('my.example.com');
+            done(err);
+        });
+    });
+
     describe('schema load tests', function () {
 
         before(function () {
@@ -156,7 +177,7 @@ describe('converter tests', function () {
             converter.setLogger(_logger);
             converter.convert(samplePath, function (err, result) {
                 expect(logs.indexOf('load schema request failed: 404') > 0).to.be.ok();
-                expect(server.isDone());
+                expect(server.isDone()).to.be.ok();
                 expect(result).to.be.ok();
                 done(err);
             });
@@ -183,7 +204,7 @@ describe('converter tests', function () {
                     logs.indexOf(
                         'load schema request failed: Expected application/json but received application/xml'
                     ) > 0).to.be.ok();
-                expect(server.isDone());
+                expect(server.isDone()).to.be.ok();
                 expect(result).to.be.ok();
                 done(err);
             });
@@ -207,7 +228,7 @@ describe('converter tests', function () {
             converter.setLogger(_logger);
             converter.convert(samplePath, function (err, result) {
                 expect(logs.indexOf('schema not json: Unexpected token } in JSON at position 15') > 0).to.be.ok();
-                expect(server.isDone());
+                expect(server.isDone()).to.be.ok();
                 expect(result).to.be.ok();
                 done(err);
             });
@@ -231,7 +252,7 @@ describe('converter tests', function () {
                     logs.indexOf(
                         'failed to load schema; validation disabled. Error: unexpected error'
                     ) > 0).to.be.ok();
-                expect(server.isDone());
+                expect(server.isDone()).to.be.ok();
                 expect(result).to.be.ok();
                 done(err);
             });
