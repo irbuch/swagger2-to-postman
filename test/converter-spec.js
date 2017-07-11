@@ -46,9 +46,9 @@ describe('converter tests', function () {
         });
     });
 
-    it('should obey the includeQueryParams option', function (done) {
+    it('should obey the excludeQueryParams option', function (done) {
         var options = {
-            includeQueryParams: false,
+            excludeQueryParams: true,
         };
         var samplePath = path.join(__dirname, 'data', 'sampleswagger.json');
         var converter = new Swagger2Postman(options);
@@ -58,36 +58,36 @@ describe('converter tests', function () {
         });
     });
 
-    it('should obey the includeOptionalQueryParams option', function (done) {
+    it('should obey the excludeOptionalQueryParams option', function (done) {
         var opts = {
-            includeOptionalQueryParams: true,
+            excludeOptionalQueryParams: true,
         };
         var samplePath = path.join(__dirname, 'data', 'sampleswagger.json');
         var converter = new Swagger2Postman(opts);
         converter.convert(samplePath, function (err, result) {
-            expect(result.item[0].item[3].request.url.query.length > 0).to.be.ok();
+            expect(result.item[0].item[3].request.url).not.to.have.key('query');
             done(err);
         });
     });
 
-    it('should obey the includeBodyTemplate option', function (done) {
+    it('should obey the excludeBodyTemplate option', function (done) {
         var options = {
-            includeBodyTemplate: true,
-            includeTests: true,
+            excludeBodyTemplate: true,
+            excludeTests: true,
         };
         var samplePath = path.join(__dirname, 'data', 'sampleswagger.json');
         var converter = new Swagger2Postman(options);
         converter.setLogger(_.noop);
         converter.convert(samplePath, function (err, result) {
-            expect(result.item[0].item[0].request.body.raw.indexOf('status') > 0).to.be.ok();
+            expect(result.item[0].item[0].request.body.raw).to.be('Pet object that needs to be added to the store');
             done(err);
         });
     });
 
-    it('should obey the includeBodyTemplate option - another', function (done) {
+    it('should obey the excludeBodyTemplate option - another', function (done) {
         var options = {
-            includeBodyTemplate: true,
-            includeTests: true,
+            excludeBodyTemplate: false,
+            excludeTests: true,
         };
         var samplePath = path.join(__dirname, 'data', 'swagger2.json');
         var converter = new Swagger2Postman(options);

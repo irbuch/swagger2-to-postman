@@ -53,10 +53,10 @@ Options:
   -o, --output <path>              target file path for Postman Collection
   -w, --overwrite                  Overwrite the output file if exists
   -c, --compact                    Compact the output
-  --include-query-params           Include query parameters
-  --include-optional-query-params  Include optional query parameters
-  --include-body-template          Include body template
-  --include-tests                  Include tests of responses
+  --exclude-query-params           Exclude query parameters
+  --exclude-optional-query-params  Exclude optional query parameters
+  --exclude-body-template          Exclude body template
+  --exclude-tests                  Exclude tests of responses
   --disable-collection-validation  Disable validation of the generated Collection
   -t, --tag-filter <tag>           Include operations with specific tag
   --host <hostname>                Name of API host to use. Overrides value within provided API specification.
@@ -66,7 +66,7 @@ Options:
 ### Examples
 
 ```bash
-swag2post convert -i http://petstore.swagger.io/v2/swagger.json -o petstore_collection.json --include-optional-query-params --include-body-template --include-tests
+swag2post convert -i http://petstore.swagger.io/v2/swagger.json -o petstore_collection.json --exclude-optional-query-params --exclude-body-template --exclude-tests
 ```
 
 ```bash
@@ -112,10 +112,10 @@ The constructor can also take in a map of configuration options
 
 ```javascript
 var options = {
-  includeQueryParams: true,
-  includeOptionalQueryParams: true,
-  includeBodyTemplate: true,
-  includeTests: true,
+  excludeQueryParams: true,
+  excludeOptionalQueryParams: true,
+  excludeBodyTemplate: true,
+  excludeTests: true,
   disableCollectionValidation: false,
   tagFilter: 'SampleTag',
   host: 'my.example.com',
@@ -126,10 +126,10 @@ var swaggerConverter = new Swagger2Postman(options);
 
 ### Valid Options
 
-* `includeQueryParams` - (default *true*) Include query string parameters in the request URL.
-* `includeOptionalQueryParams` - (default *false*) Include optional query string parameters in the request URL.
-* `includeBodyTemplate` - (default *false*) Include example body when body parameter defined and `consumes` includes `application/.*json`.
-* `includeTests` - (default *false*) Include test(s) that validate the defined responses for an operation.
+* `excludeQueryParams` - (default *false*) Exclude query string parameters in the request URL.
+* `excludeOptionalQueryParams` - (default *false*) Exclude optional query string parameters in the request URL.
+* `excludeBodyTemplate` - (default *false*) Exclude example body when body parameter defined and `consumes` includes `application/.*json`.
+* `excludeTests` - (default *false*) Exclude test(s) that validate the defined responses for an operation.
 * `disableCollectionValidation` - (default *false*) Disable downloading Postman Collection Schema and validating the generated collection.
 * `tagFilter` - (default *null*) Filter resources that have a tag that matches this value.
 * `host` - (default *null*) Name of the API host. Overrides the value within specification.

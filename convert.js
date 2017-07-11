@@ -51,17 +51,17 @@ var Swagger2Postman = jsface.Class({ // eslint-disable-line
 
         this.options = options || {};
 
-        this.options.includeQueryParams = typeof this.options.includeQueryParams === 'undefined' ?
-            true : this.options.includeQueryParams;
+        this.options.excludeQueryParams = typeof this.options.excludeQueryParams === 'undefined' ?
+            false : this.options.excludeQueryParams;
 
-        this.options.includeOptionalQueryParams = typeof this.options.includeOptionalQueryParams === 'undefined' ?
-            false : this.options.includeOptionalQueryParams;
+        this.options.excludeOptionalQueryParams = typeof this.options.excludeOptionalQueryParams === 'undefined' ?
+            false : this.options.excludeOptionalQueryParams;
 
-        this.options.includeBodyTemplate = typeof this.options.includeBodyTemplate === 'undefined' ?
-            false : this.options.includeBodyTemplate;
+        this.options.excludeBodyTemplate = typeof this.options.excludeBodyTemplate === 'undefined' ?
+            false : this.options.excludeBodyTemplate;
 
-        this.options.includeTests = typeof this.options.includeTests === 'undefined' ?
-            false : this.options.includeTests;
+        this.options.excludeTests = typeof this.options.excludeTests === 'undefined' ?
+            false : this.options.excludeTests;
 
         this.options.disableCollectionValidation = typeof this.options.disableCollectionValidation === 'undefined' ?
             false : this.options.disableCollectionValidation;
@@ -338,8 +338,8 @@ var Swagger2Postman = jsface.Class({ // eslint-disable-line
 
     processParameter: function (param, consumes, request) {
         if (param.in === 'query') {
-            if (this.options.includeQueryParams === true &&
-                (param.required || this.options.includeOptionalQueryParams === true)) {
+            if (this.options.excludeQueryParams === false &&
+                (param.required || this.options.excludeOptionalQueryParams === false)) {
 
                 _.defaults(request.url, {query: []});
                 request.url.query.push({
@@ -368,7 +368,7 @@ var Swagger2Postman = jsface.Class({ // eslint-disable-line
                 return ct.indexOf('json') > -1;
             });
 
-            if (this.options.includeBodyTemplate === true && param.schema && contentType) {
+            if (this.options.excludeBodyTemplate === false && param.schema && contentType) {
 
                 _.defaults(request, {header: []});
                 request.header.push({
@@ -510,7 +510,7 @@ var Swagger2Postman = jsface.Class({ // eslint-disable-line
 
         request = this.applyDefaultBodyMode(thisConsumes, request);
 
-        if (this.options.includeTests === true) {
+        if (this.options.excludeTests === false) {
             this.logger('Adding Test for: ' + path);
             var tests = this.generateTestsFromSpec(operation.responses);
             _.defaults(item, {events: []});

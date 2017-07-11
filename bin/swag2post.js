@@ -45,10 +45,10 @@ program
     .option('-o, --output <path>', 'target file path for Postman Collection')
     .option('-w, --overwrite', 'Overwrite the output file if exists', false)
     .option('-c, --compact', 'Compact the output', false)
-    .option('--include-query-params', 'Include query parameters', true)
-    .option('--include-optional-query-params', 'Include optional query parameters', false)
-    .option('--include-body-template', 'Include body template', false)
-    .option('--include-tests', 'Include tests of responses', false)
+    .option('--exclude-query-params', 'Exclude query parameters', false)
+    .option('--exclude-optional-query-params', 'Exclude optional query parameters', false)
+    .option('--exclude-body-template', 'Exclude body template', false)
+    .option('--exclude-tests', 'Exclude tests of responses', false)
     .option('--disable-collection-validation', 'Disable validation of the generated Collection', false)
     .option('-t, --tag-filter <tag>', 'Include operations with specific tag', null)
     .option('--host <hostname>', 'Name of API host to use. Overrides value within provided API specification.', null)
@@ -63,10 +63,10 @@ program
         }
 
         var opts = {
-            includeQueryParams: options.includeQueryParams,
-            includeOptionalQueryParams: options.includeOptionalQueryParams,
-            includeBodyTemplate: options.includeBodyTemplate,
-            includeTests: options.includeTests,
+            excludeQueryParams: options.excludeQueryParams,
+            excludeOptionalQueryParams: options.excludeOptionalQueryParams,
+            excludeBodyTemplate: options.excludeBodyTemplate,
+            excludeTests: options.excludeTests,
             disableCollectionValidation: options.disableCollectionValidation,
             tagFilter: options.tagFilter,
             host: options.host,
