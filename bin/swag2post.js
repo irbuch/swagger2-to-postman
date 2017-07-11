@@ -49,8 +49,8 @@ program
     .option('--include-optional-query-params', 'Include optional query parameters', false)
     .option('--include-body-template', 'Include body template', false)
     .option('--include-tests', 'Include tests of responses', false)
-    .option('-t, --tag-filter', 'Include operations with specific tag', null)
-    .option('--host', 'Name of API host to use. Overrides value within provided API specification.', null)
+    .option('-t, --tag-filter <tag>', 'Include operations with specific tag', null)
+    .option('--host <hostname>', 'Name of API host to use. Overrides value within provided API specification.', null)
     .action(function (options) {
         if (!options.input) {
             console.error('Input file must be specified!');

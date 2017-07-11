@@ -55,8 +55,8 @@ Options:
   --include-optional-query-params  Include optional query parameters
   --include-body-template          Include body template
   --include-tests                  Include tests of responses
-  -t, --tag-filter                 Include operations with specific tag
-  --host                           Name of API host to use. Overrides value within provided API specification.
+  -t, --tag-filter <tag>           Include operations with specific tag
+  --host <hostname>                Name of API host to use. Overrides value within provided API specification.
   -h, --help                       output usage information
 ```
 
