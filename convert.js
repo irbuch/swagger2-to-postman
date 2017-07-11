@@ -10,6 +10,7 @@ var Ajv = require('ajv');
 var metaSchema = require('ajv/lib/refs/json-schema-draft-04.json');
 
 var POSTMAN_SCHEMA = 'https://schema.getpostman.com/json/collection/v2.0.0/collection.json';
+var META_KEY = 'x-postman-meta';
 
 function isValid() {
     return true;
@@ -325,6 +326,16 @@ var Swagger2Postman = jsface.Class({ // eslint-disable-line
         return request;
     },
 
+    applyPostmanSecurity: function (auth, request) {
+        var supportedAuthTypes = ['awsv4', 'digest', 'hawk', 'oauth1'];
+        _.forEach(supportedAuthTypes, function (authType) {
+            if (auth.type === authType && auth.hasOwnProperty(authType)) {
+                request.auth = auth;
+            }
+        });
+        return request;
+    },
+
     processParameter: function (param, consumes, request) {
         if (param.in === 'query') {
             if (this.options.includeQueryParams === true &&
@@ -477,12 +488,11 @@ var Swagger2Postman = jsface.Class({ // eslint-disable-line
             });
         }
 
-        // TODO: Handle custom swagger attributes for postman aws integration
-        // if (operation['x-postman-meta']) {
-        //     for (var requestAttr in operation['x-postman-meta']) {
-        //         request[requestAttr] = operation['x-postman-meta'][requestAttr];
-        //     }
-        // }
+        if (operation[META_KEY]) {
+            if (operation[META_KEY].hasOwnProperty('auth')) {
+                request = this.applyPostmanSecurity(operation[META_KEY].auth, request);
+            }
+        }
 
         // handle security
         // Only consider the first defined security object.

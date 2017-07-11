@@ -38,14 +38,16 @@
           "Auth"
         ],
         "x-postman-meta": {
-          "currentHelper": "awsSigV4",
-          "helperAttributes": {
-            "accessKey": "{{aws_access_key_id}}",
-            "secretKey": "{{aws_secret_access_key}}",
-            "region": "eu-west-1",
-            "service": "execute-api",
-            "saveHelper": true
-          }
+            "auth": {
+                "type": "awsv4",
+                "awsv4": {
+                    "accessKey": "{{aws_access_key_id}}",
+                    "secretKey": "{{aws_secret_access_key}}",
+                    "region": "eu-west-1",
+                    "service": "execute-api",
+                    "saveHelperData": true
+                }
+            }
         },
         "responses": {
           "200": {

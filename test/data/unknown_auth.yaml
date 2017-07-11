@@ -55,6 +55,8 @@ paths:
 
         <response>
         ```
+      x-postman-meta:
+        other: random string
       responses:
         200:
           description: Logged in User

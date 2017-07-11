@@ -22,7 +22,7 @@ describe('converter tests', function () {
         return null;
     });
 
-    it.skip('must read values from the "x-postman-meta" key', function (done) {
+    it('must read values from the "x-postman-meta" key', function (done) {
         var samplePath = path.join(__dirname, 'data', 'swagger_aws.json');
         var converter = new Swagger2Postman();
         converter.convert(samplePath, function (err, result) {
@@ -30,9 +30,8 @@ describe('converter tests', function () {
                 done(err);
                 return;
             }
-            // Make sure that currentHelper and helperAttributes are processed
-            expect(result.item[0].item[0].request).to.have.key('currentHelper');
-            expect(result.item[0].item[0].request).to.have.key('helperAttributes');
+            expect(result.item[0].item[0].request).to.have.key('auth');
+            expect(result.item[0].item[0].request.auth).to.have.key('awsv4');
             done();
         });
     });

@@ -9,6 +9,8 @@ Converts [Swagger 2.0](https://swagger.io/specification/) API specification to [
     * [Examples](#examples)
 - [As Library](#as-library)
     * [Valid Options](#valid-options)
+- [Vendor Extensions](#vendor-extensions)
+    * [x-postman-meta](#x-postman-meta)
 - [TODO](#todo)
 
 
@@ -132,8 +134,42 @@ var swaggerConverter = new Swagger2Postman(options);
 * `tagFilter` - (default *null*) Filter resources that have a tag that matches this value.
 * `host` - (default *null*) Name of the API host. Overrides the value within specification.
 
+## Vendor Extensions
+
+### x-postman-meta
+
+If specified on an operation and the structure matches the `auth` structure then a Postman specific Authentication can be enabled for the operation.
+
+#### Examples
+
+```json
+"x-postman-meta": {
+    "auth": {
+        "type": "awsv4",
+        "awsv4": {
+            "accessKey": "{{aws_access_key_id}}",
+            "secretKey": "{{aws_secret_access_key}}",
+            "region": "eu-west-1",
+            "service": "execute-api",
+            "saveHelperData": true
+        }
+    }
+}
+```
+
+```yaml
+x-postman-meta:
+  auth:
+    type: awsv4
+    awsv4:
+      accessKey: "{{aws_access_key_id}}"
+      secretKey: "{{aws_secret_access_key}}"
+      region: eu-west-1
+      service: execute-api
+      saveHelperData: true
+```
+
 
 ## TODO
 
-* Support Swagger vendor extensions.
 * Support generating associated Postman Environment.
