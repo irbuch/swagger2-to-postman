@@ -1,8 +1,16 @@
-language: node_js
+sudo: required
 
+language: node_js
 node_js:
-  - '0.10'
-  - '0.12'
+  - '6'
+
+services:
+  - docker
+
+before_install:
+  - make veryclean
+  - make prepare
 
 script:
-  - npm test
+  - make lint
+  - make cover
