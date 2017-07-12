@@ -1,3 +1,5 @@
+[![Build Status](https://travis-ci.org/kenjones-cisco/swagger2-to-postman.svg?branch=develop)](https://travis-ci.org/kenjones-cisco/swagger2-to-postman)
+
 # Swagger2Postman
 
 Converts [Swagger 2.0](https://swagger.io/specification/) API specification to [Postman v2 Collection](https://schema.getpostman.com/json/collection/v2.0.0/docs/index.html).
