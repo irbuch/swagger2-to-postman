@@ -144,7 +144,7 @@ var swaggerConverter = new Swagger2Postman(options);
 
 If specified on an operation and the structure matches the `auth` structure then a Postman specific Authentication can be enabled for the operation.
 
-#### Examples
+#### auth Examples
 
 ```json
 "x-postman-meta": {
@@ -171,6 +171,26 @@ x-postman-meta:
       region: eu-west-1
       service: execute-api
       saveHelperData: true
+```
+
+If specified on an operation and includes the key `tests` that is an array where each item is a separate line in the test block.
+
+#### tests Examples
+
+```json
+"x-postman-meta": {
+    "tests": [
+        "var data = JSON.parse(responseBody);",
+        "postman.setEnvironmentVariable('username', data.name);"
+    ]
+}
+```
+
+```yaml
+x-postman-meta:
+  tests:
+    - var data = JSON.parse(responseBody);
+    - postman.setEnvironmentVariable('username', data.name);
 ```
 
 

@@ -22,7 +22,7 @@ describe('converter tests', function () {
         return null;
     });
 
-    it('must read values from the "x-postman-meta" key', function (done) {
+    it('must read values from the "x-postman-meta" key - auth', function (done) {
         var samplePath = path.join(__dirname, 'data', 'swagger_aws.json');
         var converter = new Swagger2Postman();
         converter.convert(samplePath, function (err, result) {
@@ -32,6 +32,21 @@ describe('converter tests', function () {
             }
             expect(result.item[0].item[0].request).to.have.key('auth');
             expect(result.item[0].item[0].request.auth).to.have.key('awsv4');
+            done();
+        });
+    });
+
+    it('must read values from the "x-postman-meta" key - tests', function (done) {
+        var samplePath = path.join(__dirname, 'data', 'no_definitions.yaml');
+        var converter = new Swagger2Postman();
+        converter.convert(samplePath, function (err, result) {
+            if (err) {
+                done(err);
+                return;
+            }
+            expect(result.item[1].item[0].events[0]).to.have.key('script');
+            expect(result.item[1].item[0].events[0].script.exec).to.contain(
+                'postman.setEnvironmentVariable(\'username\', data.name);');
             done();
         });
     });

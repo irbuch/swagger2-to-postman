@@ -537,7 +537,14 @@ var Swagger2Postman = jsface.Class({ // eslint-disable-line
 
         if (this.options.excludeTests === false) {
             this.logger('Adding Test for: ' + path);
-            var tests = this.generateTestsFromSpec(operation.responses);
+            var tests;
+            if (operation[META_KEY]) {
+                if (operation[META_KEY].hasOwnProperty('tests')) {
+                    tests = operation[META_KEY].tests;
+                }
+            } else {
+                tests = this.generateTestsFromSpec(operation.responses);
+            }
             _.defaults(item, {events: []});
             item.events.push({
                 listen: 'test',

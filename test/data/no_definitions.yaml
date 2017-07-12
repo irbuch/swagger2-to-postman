@@ -61,6 +61,10 @@ paths:
 
         <response>
         ```
+      x-postman-meta:
+        tests:
+          - var data = JSON.parse(responseBody);
+          - postman.setEnvironmentVariable('username', data.name);
       responses:
         200:
           description: Logged in User
