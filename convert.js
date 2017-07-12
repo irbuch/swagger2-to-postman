@@ -275,14 +275,13 @@ var Swagger2Postman = jsface.Class({ // eslint-disable-line
             if (securityDefinition) {
                 this.logger('Adding security details to request of type: ' + securityDefinition.type);
                 if (securityDefinition.type === 'oauth2') {
-                    request.auth = {
-                        type: securityDefinition.type,
-                    };
-
                     var scopes = security[securityRequirementName];
                     if (scopes && scopes.length > 0) {
-                        request.auth.oauth2 = {
-                            scope: scopes.join(' ')
+                        request.auth = {
+                            type: securityDefinition.type,
+                            oauth2: {
+                                scope: scopes.join(' ')
+                            }
                         };
                     }
 
