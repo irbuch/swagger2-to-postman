@@ -60,6 +60,8 @@ Options:
   --disable-collection-validation  Disable validation of the generated Collection
   -t, --tag-filter <tag>           Include operations with specific tag
   --host <hostname>                Name of API host to use. Overrides value within provided API specification.
+  --default-security               Name of the security options to use by default. Default: first listed.
+  --default-produces-type          Name of the produces option to use by default. Default: first listed.
   --envfile <path>                 Target path for Postman Environment (json)
   -h, --help                       output usage information
 ```
@@ -135,6 +137,8 @@ var swaggerConverter = new Swagger2Postman(options);
 * `disableCollectionValidation` - (default *false*) Disable downloading Postman Collection Schema and validating the generated collection.
 * `tagFilter` - (default *null*) Filter resources that have a tag that matches this value.
 * `host` - (default *null*) Name of the API host. Overrides the value within specification.
+* `defaultSecurity` - (default *null*) Name of the security options to use by default. Default: first listed.
+* `defaultProducesType` - (default *null*) Name of the produces option to use by default. Default: first listed.
 * `envfile` - (default *null*) Target path for Postman Environment (json).
 
 

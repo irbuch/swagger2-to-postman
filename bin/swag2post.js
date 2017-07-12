@@ -52,6 +52,8 @@ program
     .option('--disable-collection-validation', 'Disable validation of the generated Collection', false)
     .option('-t, --tag-filter <tag>', 'Include operations with specific tag', null)
     .option('--host <hostname>', 'Name of API host to use. Overrides value within provided API specification.', null)
+    .option('--default-security', 'Name of the security options to use by default. Default: first listed.', null)
+    .option('--default-produces-type', 'Name of the produces option to use by default. Default: first listed.', null)
     .option('--envfile <path>', 'Target path for Postman Environment (json)', null)
     .action(function (options) {
         if (!options.input) {
@@ -71,6 +73,8 @@ program
             disableCollectionValidation: options.disableCollectionValidation,
             tagFilter: options.tagFilter,
             host: options.host,
+            defaultSecurity: options.defaultSecurity,
+            defaultProducesType: options.defaultProducesType,
             envfile: options.envfile,
         };
         console.time('# Conversion Completed in');

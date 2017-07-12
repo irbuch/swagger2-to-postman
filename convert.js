@@ -71,6 +71,10 @@ class Swagger2Postman {
 
         this.options.host = this.options.host || null;
 
+        this.options.defaultSecurity = this.options.defaultSecurity || null;
+
+        this.options.defaultProducesType = this.options.defaultProducesType || null;
+
         this.options.envfile = this.options.envfile || null;
     }
 
@@ -480,6 +484,7 @@ class Swagger2Postman {
     }
 
     buildItemFromOperation(path, method, operation, paramsFromPathItem) {
+        var self = this;
         if (this.options.tagFilter &&
             operation.tags &&
             operation.tags.indexOf(this.options.tagFilter) === -1) {
@@ -505,10 +510,16 @@ class Swagger2Postman {
         let thisSecurity = operation.security || this.globalSecurity;
 
         if (thisProduces && thisProduces.length > 0) {
+            let defaultProduceType = thisProduces[0];
+            if (this.options.defaultProducesType) {
+                defaultProduceType = _.find(thisProduces, function (pt) {
+                    return pt === self.options.defaultProducesType;
+                }) || thisProduces[0];
+            }
             _.defaults(request, {header: []});
             request.header.push({
                 key: 'Accept',
-                value: thisProduces[0]
+                value: defaultProduceType
             });
         }
 
@@ -519,11 +530,14 @@ class Swagger2Postman {
         }
 
         // handle security
-        // Only consider the first defined security object.
         // Swagger defines that there is a logical OR between the different security objects in the array
         // i.e. only one needs to/should be used at a time
-        if (thisSecurity[0]) {
-            request = this.applySecurity(thisSecurity[0], request);
+        if (thisSecurity && thisSecurity.length > 0) {
+            let defaultSecurity = thisSecurity[0];
+            if (this.options.defaultSecurity) {
+                defaultSecurity = _.find(thisSecurity, this.options.defaultSecurity) || thisSecurity[0];
+            }
+            request = this.applySecurity(defaultSecurity, request);
         }
 
         // set data and headers
@@ -531,6 +545,9 @@ class Swagger2Postman {
             this.logger('Processing param: ' + JSON.stringify(param));
             request = this.processParameter(thisParams[param], thisConsumes, request);
         }
+
+        // make sure headers are unique
+        request.header = _.uniqBy(request.header, 'key');
 
         request = this.applyDefaultBodyMode(thisConsumes, request);
 

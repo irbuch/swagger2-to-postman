@@ -182,6 +182,43 @@ describe('converter tests', function () {
         });
     });
 
+    it('should obey the defaultProducesType option', function (done) {
+        let options = {
+            defaultProducesType: 'application/json',
+        };
+        let samplePath = path.join(__dirname, 'data', 'sampleswagger.json');
+        let converter = new Swagger2Postman(options);
+        converter.convert(samplePath, function (err, result) {
+            expect(result.item[0].item[6].request.header[0].value).to.be('application/json');
+            done(err);
+        });
+    });
+
+    it('should obey the defaultProducesType option - unknown value', function (done) {
+        let options = {
+            defaultProducesType: 'application/fake',
+        };
+        let samplePath = path.join(__dirname, 'data', 'sampleswagger.json');
+        let converter = new Swagger2Postman(options);
+        converter.convert(samplePath, function (err, result) {
+            expect(result.item[0].item[6].request.header[0].value).to.be('application/xml');
+            done(err);
+        });
+    });
+
+    it('should obey the defaultSecurity option', function (done) {
+        let options = {
+            defaultSecurity: 'petstore_auth',
+        };
+        let samplePath = path.join(__dirname, 'data', 'sampleswagger.json');
+        let converter = new Swagger2Postman(options);
+        converter.convert(samplePath, function (err, result) {
+            expect(result.item[0].item[0].request).to.have.key('auth');
+            expect(result.item[0].item[0].request.header[1].value).to.be('Bearer {{petstore_auth_access_token}}');
+            done(err);
+        });
+    });
+
     it('should obey the envfile option', function (done) {
         let filename = '/tmp/sampleswagger-env.json';
         let options = {
