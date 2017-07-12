@@ -92,7 +92,7 @@ describe('converter tests', function () {
         var samplePath = path.join(__dirname, 'data', 'swagger2.json');
         var converter = new Swagger2Postman(options);
         converter.convert(samplePath, function (err, result) {
-            expect(result.item[1].item[0].request.body.raw.indexOf('rating') > 0).to.be.ok();
+            expect(result.item[1].item[0].request.body.raw).to.contain('rating');
             done(err);
         });
     });
@@ -113,8 +113,8 @@ describe('converter tests', function () {
         var samplePath = path.join(__dirname, 'data', 'swagger2-with-params.json');
         var converter = new Swagger2Postman();
         converter.convert(samplePath, function (err, result) {
-            expect(result.item[0].item[0].request.url.path.indexOf(':ownerId') > 0).to.be.ok();
-            expect(result.item[0].item[0].request.url.path.indexOf(':petId') > 0).to.be.ok();
+            expect(result.item[0].item[0].request.url.path).to.contain(':ownerId');
+            expect(result.item[0].item[0].request.url.path).to.contain(':petId');
             done(err);
         });
     });
@@ -128,7 +128,7 @@ describe('converter tests', function () {
         converter.convert(samplePath, function (err, result) {
             // one operation has a tag but the other does not; therefore the list should
             // only contain the operation with no tags.
-            expect(result.item.length === 1).to.be.ok();
+            expect(result.item).to.have.length(1);
             expect(result.item[0].name).to.equal('Data');
             done(err);
         });
@@ -167,6 +167,23 @@ describe('converter tests', function () {
         });
     });
 
+    it('should obey the envfile option', function (done) {
+        var filename = '/tmp/sampleswagger-env.json';
+        var options = {
+            envfile: filename,
+        };
+        var samplePath = path.join(__dirname, 'data', 'sampleswagger.json');
+        var converter = new Swagger2Postman(options);
+        converter.convert(samplePath, function (err, result) {
+            expect(converter.envfile.name).to.be('sampleswagger-env');
+            expect(converter.envfile._postman_variable_scope).to.be('environment');
+            expect(converter.envfile.timestamp).to.be.ok();
+            expect(converter.envfile.values.length).to.be.greaterThan(0);
+            expect(result).to.be.ok();
+            done(err);
+        });
+    });
+
     describe('schema load tests', function () {
 
         before(function () {
@@ -187,7 +204,7 @@ describe('converter tests', function () {
             var converter = new Swagger2Postman();
             converter.setLogger(_logger);
             converter.convert(samplePath, function (err, result) {
-                expect(logs.indexOf('load schema request failed: 404') > 0).to.be.ok();
+                expect(logs).to.contain('load schema request failed: 404');
                 expect(server.isDone()).to.be.ok();
                 expect(result).to.be.ok();
                 done(err);
@@ -211,10 +228,8 @@ describe('converter tests', function () {
             var converter = new Swagger2Postman();
             converter.setLogger(_logger);
             converter.convert(samplePath, function (err, result) {
-                expect(
-                    logs.indexOf(
-                        'load schema request failed: Expected application/json but received application/xml'
-                    ) > 0).to.be.ok();
+                expect(logs).to.contain(
+                    'load schema request failed: Expected application/json but received application/xml');
                 expect(server.isDone()).to.be.ok();
                 expect(result).to.be.ok();
                 done(err);
@@ -238,7 +253,7 @@ describe('converter tests', function () {
             var converter = new Swagger2Postman();
             converter.setLogger(_logger);
             converter.convert(samplePath, function (err, result) {
-                expect(logs.indexOf('schema not json: Unexpected token } in JSON at position 15') > 0).to.be.ok();
+                expect(logs).to.contain('schema not json: Unexpected token } in JSON at position 15');
                 expect(server.isDone()).to.be.ok();
                 expect(result).to.be.ok();
                 done(err);
@@ -259,10 +274,7 @@ describe('converter tests', function () {
             var converter = new Swagger2Postman();
             converter.setLogger(_logger);
             converter.convert(samplePath, function (err, result) {
-                expect(
-                    logs.indexOf(
-                        'failed to load schema; validation disabled. Error: unexpected error'
-                    ) > 0).to.be.ok();
+                expect(logs).to.contain('failed to load schema; validation disabled. Error: unexpected error');
                 expect(server.isDone()).to.be.ok();
                 expect(result).to.be.ok();
                 done(err);

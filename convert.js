@@ -1,6 +1,7 @@
 /* eslint no-console: ["error", { allow: ["time", "timeEnd"] }] */
 'use strict';
 var https = require('https');
+var libpath = require('path');
 var uuidv4 = require('uuid/v4');
 var jsface = require('jsface');
 var _ = require('lodash');
@@ -32,6 +33,7 @@ var Swagger2Postman = jsface.Class({ // eslint-disable-line
         this.globalProduces = [];
         this.globalSecurity = [];
         this.logger = _.noop;
+        this.envfile = {};
 
         this.validator = new Ajv({
             verbose: true,
@@ -69,6 +71,8 @@ var Swagger2Postman = jsface.Class({ // eslint-disable-line
         this.options.tagFilter = this.options.tagFilter || null;
 
         this.options.host = this.options.host || null;
+
+        this.options.envfile = this.options.envfile || null;
     },
 
     setLogger: function (func) {
@@ -127,8 +131,6 @@ var Swagger2Postman = jsface.Class({ // eslint-disable-line
     },
 
     setBasePath: function (api) {
-        // This should be `domain` according to the specs, but postman seems
-        // to only accept `host`.
         if (this.options.host) {
             this.basePath.host = this.options.host;
         } else if (api.host) {
@@ -255,6 +257,15 @@ var Swagger2Postman = jsface.Class({ // eslint-disable-line
         return this.getDefaultValue(schema.type);
     },
 
+    addEnvItem: function (name) {
+        this.envfile.values.push({
+            key: name,
+            value: '',
+            type: 'text',
+            enabled: true,
+        });
+    },
+
     buildUrl: function (path) {
         // skip the starting '/' to avoid empty space being added as the initial value
         var lpath = path.substring(1).split('/');
@@ -346,6 +357,10 @@ var Swagger2Postman = jsface.Class({ // eslint-disable-line
                     value: '{{' + param.name + '}}',
                     description: param.description,
                 });
+
+                if (this.options.envfile) {
+                    this.addEnvItem(param.name);
+                }
             }
         }
 
@@ -357,6 +372,9 @@ var Swagger2Postman = jsface.Class({ // eslint-disable-line
                 description: param.description,
             });
 
+            if (this.options.envfile) {
+                this.addEnvItem(param.name);
+            }
         }
 
         if (param.in === 'body') {
@@ -395,6 +413,11 @@ var Swagger2Postman = jsface.Class({ // eslint-disable-line
                     type: 'text/markdown'
                 }
             };
+
+            if (this.options.envfile) {
+                this.addEnvItem(param.name);
+            }
+
             if (consumes.indexOf('application/x-www-form-urlencoded') > -1) {
                 request.body.mode = 'urlencoded';
                 _.defaults(request.body, {urlencoded: []});
@@ -417,13 +440,16 @@ var Swagger2Postman = jsface.Class({ // eslint-disable-line
         }
 
         if (param.in === 'path') {
-            _.defaults(request.url, {variables: []});
-            request.url.variables.push({
-                id: param.name,
+            _.defaults(request.url, {variable: []});
+            request.url.variable.push({
+                key: param.name,
                 value: '{{' + param.name + '}}',
-                type: param.type,
                 description: param.description,
             });
+
+            if (this.options.envfile) {
+                this.addEnvItem(param.name);
+            }
         }
 
         return request;
@@ -620,11 +646,25 @@ var Swagger2Postman = jsface.Class({ // eslint-disable-line
 
                 self.globalSecurity = api.security || [];
 
+                if (self.options.envfile) {
+                    self.envfile = {
+                        id: uuidv4(),
+                        name: libpath.basename(self.options.envfile, '.json'),
+                        timestamp: Date.now(),
+                        _postman_variable_scope: 'environment',
+                        values: [],
+                    };
+                }
+
                 self.handleInfo(api.info);
 
                 self.setBasePath(api);
 
                 self.handlePaths(api.paths);
+
+                if (self.options.envfile) {
+                    self.envfile.values = _.uniqBy(self.envfile.values, 'key');
+                }
 
                 self.logger('Conversion successful');
 

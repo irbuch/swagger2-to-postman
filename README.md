@@ -50,7 +50,7 @@ Convert Swagger v2 API specification to Postman v2 Collection
 Options:
 
   -i, --input <location>           URL or file path of the Swagger specification
-  -o, --output <path>              target file path for Postman Collection
+  -o, --output <path>              Target file path for Postman Collection
   -w, --overwrite                  Overwrite the output file if exists
   -c, --compact                    Compact the output
   --exclude-query-params           Exclude query parameters
@@ -60,6 +60,7 @@ Options:
   --disable-collection-validation  Disable validation of the generated Collection
   -t, --tag-filter <tag>           Include operations with specific tag
   --host <hostname>                Name of API host to use. Overrides value within provided API specification.
+  --envfile <path>                 Target path for Postman Environment (json)
   -h, --help                       output usage information
 ```
 
@@ -119,6 +120,7 @@ var options = {
   disableCollectionValidation: false,
   tagFilter: 'SampleTag',
   host: 'my.example.com',
+  envfile: 'my-example.json',
 };
 
 var swaggerConverter = new Swagger2Postman(options);
@@ -133,6 +135,8 @@ var swaggerConverter = new Swagger2Postman(options);
 * `disableCollectionValidation` - (default *false*) Disable downloading Postman Collection Schema and validating the generated collection.
 * `tagFilter` - (default *null*) Filter resources that have a tag that matches this value.
 * `host` - (default *null*) Name of the API host. Overrides the value within specification.
+* `envfile` - (default *null*) Target path for Postman Environment (json).
+
 
 ## Vendor Extensions
 
@@ -171,5 +175,3 @@ x-postman-meta:
 
 
 ## TODO
-
-* Support generating associated Postman Environment.

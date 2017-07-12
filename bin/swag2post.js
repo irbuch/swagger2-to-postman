@@ -11,15 +11,14 @@ function done(code) {
 
 /**
  * Writes a JSON blob to the given path.
- * ``options.path`` must contain the path to the output file.
- * If ``options.pretty`` is true, output will be pretty printed. (Default false)
+ * If ``options.compact`` is true, output will be pretty printed. (Default false)
  * If ``options.overwrite`` is false, output file will be overwritten (Default true)
  *
  * @param data
+ * @param filepath
  * @param options
- * @param callback
  */
-function writeJSON(data, options, callback) {
+function writeJSON(data, filepath, options) {
     var json;
     var writeFlag = {flag: 'wx'};
     if (options.overwrite) {
@@ -28,10 +27,12 @@ function writeJSON(data, options, callback) {
 
     try {
         json = JSON.stringify(data, null, options.compact ? 0 : 4);
-        fs.writeFile(options.output, json, writeFlag, callback);
+        fs.writeFileSync(filepath, json, writeFlag);
     } catch (e) {
-        callback(e);
+        console.error('Could not write file %s', filepath, e);
+        return false;
     }
+    return true;
 }
 
 program
@@ -42,7 +43,7 @@ program
     .command('convert')
     .description('Convert Swagger v2 API specification to Postman v2 Collection')
     .option('-i, --input <location>', 'URL or file path of the Swagger specification')
-    .option('-o, --output <path>', 'target file path for Postman Collection')
+    .option('-o, --output <path>', 'Target file path for Postman Collection')
     .option('-w, --overwrite', 'Overwrite the output file if exists', false)
     .option('-c, --compact', 'Compact the output', false)
     .option('--exclude-query-params', 'Exclude query parameters', false)
@@ -52,6 +53,7 @@ program
     .option('--disable-collection-validation', 'Disable validation of the generated Collection', false)
     .option('-t, --tag-filter <tag>', 'Include operations with specific tag', null)
     .option('--host <hostname>', 'Name of API host to use. Overrides value within provided API specification.', null)
+    .option('--envfile <path>', 'Target path for Postman Environment (json)', null)
     .action(function (options) {
         if (!options.input) {
             console.error('Input file must be specified!');
@@ -70,6 +72,7 @@ program
             disableCollectionValidation: options.disableCollectionValidation,
             tagFilter: options.tagFilter,
             host: options.host,
+            envfile: options.envfile,
         };
         console.time('# Conversion Completed in');
         var converter = new Swagger2Postman(opts);
@@ -82,15 +85,15 @@ program
                 return;
             }
             console.log('writing collection...');
-            writeJSON(result, options, function (error) {
-                if (error) {
-                    console.error('Could not write output file %s', options.output, error);
-                    console.timeEnd('# Conversion Completed in');
-                    return;
-                }
+            if (writeJSON(result, options.output, options)) {
                 console.log('collection stored');
-                console.timeEnd('# Conversion Completed in');
-            });
+            }
+            console.timeEnd('# Conversion Completed in');
+
+            if (options.envfile) {
+                writeJSON(converter.envfile, options.envfile, options);
+            }
+
         });
 
     });
