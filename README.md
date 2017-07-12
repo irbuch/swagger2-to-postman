@@ -81,7 +81,7 @@ swag2post convert -i swagger.yaml -o petstore_collection.json
 
 ## As library
 
-convert.js provides a jsFace class - Swagger2Postman.
+convert.js provides a class - `Swagger2Postman`.
 
 Initialize class:
 

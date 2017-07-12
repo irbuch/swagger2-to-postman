@@ -3,22 +3,21 @@
 var https = require('https');
 var libpath = require('path');
 var uuidv4 = require('uuid/v4');
-var jsface = require('jsface');
 var _ = require('lodash');
 var SwaggerParser = require('swagger-parser');
 
 var Ajv = require('ajv');
 var metaSchema = require('ajv/lib/refs/json-schema-draft-04.json');
 
-var POSTMAN_SCHEMA = 'https://schema.getpostman.com/json/collection/v2.0.0/collection.json';
-var META_KEY = 'x-postman-meta';
+const POSTMAN_SCHEMA = 'https://schema.getpostman.com/json/collection/v2.0.0/collection.json';
+const META_KEY = 'x-postman-meta';
 
 function isValid() {
     return true;
 }
 
-var Swagger2Postman = jsface.Class({ // eslint-disable-line
-    constructor: function (options) {
+class Swagger2Postman {
+    constructor(options) {
         this.collectionJson = {
             info: {
                 name: '',
@@ -73,13 +72,13 @@ var Swagger2Postman = jsface.Class({ // eslint-disable-line
         this.options.host = this.options.host || null;
 
         this.options.envfile = this.options.envfile || null;
-    },
+    }
 
-    setLogger: function (func) {
+    setLogger(func) {
         this.logger = func;
-    },
+    }
 
-    loadSchema: function (cb) {
+    loadSchema(cb) {
         var self = this;
 
         if (this.options.disableCollectionValidation) {
@@ -88,10 +87,10 @@ var Swagger2Postman = jsface.Class({ // eslint-disable-line
         }
 
         https.get(POSTMAN_SCHEMA, function (res) {
-            var statusCode = res.statusCode;
-            var contentType = res.headers['content-type'];
+            let statusCode = res.statusCode;
+            let contentType = res.headers['content-type'];
 
-            var failed = false;
+            let failed = false;
             if (statusCode !== 200) {
                 self.logger('load schema request failed: ' + statusCode);
                 failed = true;
@@ -109,13 +108,13 @@ var Swagger2Postman = jsface.Class({ // eslint-disable-line
 
             res.setEncoding('utf8');
 
-            var rawData = '';
+            let rawData = '';
             res.on('data', function (chunk) {
                 rawData += chunk;
             });
             res.on('end', function () {
                 try {
-                    var parsedData = JSON.parse(rawData);
+                    let parsedData = JSON.parse(rawData);
                     self.validate = self.validator.compile(parsedData);
                     self.logger('schema load successful');
                 } catch (e) {
@@ -128,9 +127,9 @@ var Swagger2Postman = jsface.Class({ // eslint-disable-line
             self.logger('failed to load schema; validation disabled. ' + err);
             cb();
         });
-    },
+    }
 
-    setBasePath: function (api) {
+    setBasePath(api) {
         if (this.options.host) {
             this.basePath.host = this.options.host;
         } else if (api.host) {
@@ -148,18 +147,18 @@ var Swagger2Postman = jsface.Class({ // eslint-disable-line
         } else {
             this.basePath.protocol = 'http';
         }
-    },
+    }
 
-    getFolderNameForPath: function (pathUrl) {
+    getFolderNameForPath(pathUrl) {
         if (pathUrl === '/') {
             return null;
         }
-        var folderName = pathUrl.split('/')[1];
+        let folderName = pathUrl.split('/')[1];
         this.logger('Mapping path: ' + pathUrl + ' ==> folderName: ' + folderName);
         return folderName;
-    },
+    }
 
-    handleInfo: function (info) {
+    handleInfo(info) {
         this.collectionJson.info.name = info.title;
         if (info.description) {
             this.collectionJson.info.description = {
@@ -167,9 +166,9 @@ var Swagger2Postman = jsface.Class({ // eslint-disable-line
                 type: 'text/markdown'
             };
         }
-    },
+    }
 
-    mergeParamLists: function (oldParams, newParams) {
+    mergeParamLists(oldParams, newParams) {
         var retVal = {};
 
         _.forEach(oldParams || [], function (p) {
@@ -181,11 +180,11 @@ var Swagger2Postman = jsface.Class({ // eslint-disable-line
         });
 
         return retVal;
-    },
+    }
 
-    generateTestsFromSpec: function (responses) {
+    generateTestsFromSpec(responses) {
         var tests = [];
-        var statusCodes = _.keys(responses);
+        let statusCodes = _.keys(responses);
 
         tests.push('tests["Status code is expected"] = [' +
           statusCodes.join() + '].indexOf(responseCode.code) > -1;');
@@ -207,9 +206,9 @@ var Swagger2Postman = jsface.Class({ // eslint-disable-line
         });
 
         return tests;
-    },
+    }
 
-    getDefaultValue: function (type) {
+    getDefaultValue(type) {
         switch (type) {
             case 'integer': {
                 return 0;
@@ -228,9 +227,9 @@ var Swagger2Postman = jsface.Class({ // eslint-disable-line
                 return null;
             }
         }
-    },
+    }
 
-    getModelTemplate: function (schema) {
+    getModelTemplate(schema) {
         if (schema.example) {
             return JSON.stringify(schema.example, null, 4);
         }
@@ -238,10 +237,10 @@ var Swagger2Postman = jsface.Class({ // eslint-disable-line
         var value;
 
         if (schema.type === 'object' || schema.properties) {
-            var definition = [];
+            let definition = [];
 
-            for (var name in schema.properties) {
-                var propertySchema = schema.properties[name];
+            for (let name in schema.properties) {
+                let propertySchema = schema.properties[name];
                 if (!propertySchema.readOnly) {
                     value = this.getModelTemplate(propertySchema);
                     definition.push('"' + name + '" : ' + value);
@@ -255,21 +254,21 @@ var Swagger2Postman = jsface.Class({ // eslint-disable-line
         }
 
         return this.getDefaultValue(schema.type);
-    },
+    }
 
-    addEnvItem: function (name) {
+    addEnvItem(name) {
         this.envfile.values.push({
             key: name,
             value: '',
             type: 'text',
             enabled: true,
         });
-    },
+    }
 
-    buildUrl: function (path) {
+    buildUrl(path) {
         // skip the starting '/' to avoid empty space being added as the initial value
-        var lpath = path.substring(1).split('/');
-        var urlObject = _.clone(this.basePath);
+        let lpath = path.substring(1).split('/');
+        let urlObject = _.clone(this.basePath);
 
         if (this.basePath.hasOwnProperty('path')) {
             urlObject.path = this.basePath.path.concat(lpath);
@@ -278,15 +277,15 @@ var Swagger2Postman = jsface.Class({ // eslint-disable-line
         }
 
         return urlObject;
-    },
+    }
 
-    applySecurity: function (security, request) {
-        for (var securityRequirementName in security) {
-            var securityDefinition = this.securityDefinitions[securityRequirementName];
+    applySecurity(security, request) {
+        for (let securityRequirementName in security) {
+            let securityDefinition = this.securityDefinitions[securityRequirementName];
             if (securityDefinition) {
                 this.logger('Adding security details to request of type: ' + securityDefinition.type);
                 if (securityDefinition.type === 'oauth2') {
-                    var scopes = security[securityRequirementName];
+                    let scopes = security[securityRequirementName];
                     if (scopes && scopes.length > 0) {
                         request.auth = {
                             type: securityDefinition.type,
@@ -334,19 +333,19 @@ var Swagger2Postman = jsface.Class({ // eslint-disable-line
         }
 
         return request;
-    },
+    }
 
-    applyPostmanSecurity: function (auth, request) {
-        var supportedAuthTypes = ['awsv4', 'digest', 'hawk', 'oauth1'];
+    applyPostmanSecurity(auth, request) {
+        const supportedAuthTypes = ['awsv4', 'digest', 'hawk', 'oauth1'];
         _.forEach(supportedAuthTypes, function (authType) {
             if (auth.type === authType && auth.hasOwnProperty(authType)) {
                 request.auth = auth;
             }
         });
         return request;
-    },
+    }
 
-    processParameter: function (param, consumes, request) {
+    processParameter(param, consumes, request) {
         if (param.in === 'query') {
             if (this.options.excludeQueryParams === false &&
                 (param.required || this.options.excludeOptionalQueryParams === false)) {
@@ -381,7 +380,7 @@ var Swagger2Postman = jsface.Class({ // eslint-disable-line
             _.defaults(request, {body: {}});
             request.body.mode = 'raw';
 
-            var contentType = _.find(consumes, function (ct) {
+            let contentType = _.find(consumes, function (ct) {
                 return ct.indexOf('json') > -1;
             });
 
@@ -404,7 +403,7 @@ var Swagger2Postman = jsface.Class({ // eslint-disable-line
 
         if (param.in === 'formData') {
             _.defaults(request, {body: {}});
-            var data = {
+            let data = {
                 key: param.name,
                 value: '{{' + param.name + '}}',
                 enabled: true,
@@ -453,9 +452,9 @@ var Swagger2Postman = jsface.Class({ // eslint-disable-line
         }
 
         return request;
-    },
+    }
 
-    applyDefaultBodyMode: function (consumes, request) {
+    applyDefaultBodyMode(consumes, request) {
         // set the default body mode for this request, as required
         if (!request.hasOwnProperty('body')) {
             if (consumes.indexOf('application/x-www-form-urlencoded') > -1) {
@@ -478,9 +477,9 @@ var Swagger2Postman = jsface.Class({ // eslint-disable-line
         }
 
         return request;
-    },
+    }
 
-    buildItemFromOperation: function (path, method, operation, paramsFromPathItem) {
+    buildItemFromOperation(path, method, operation, paramsFromPathItem) {
         if (this.options.tagFilter &&
             operation.tags &&
             operation.tags.indexOf(this.options.tagFilter) === -1) {
@@ -500,10 +499,10 @@ var Swagger2Postman = jsface.Class({ // eslint-disable-line
             response: []
         };
 
-        var thisParams = this.mergeParamLists(paramsFromPathItem, operation.parameters);
-        var thisConsumes = operation.consumes || this.globalConsumes;
-        var thisProduces = operation.produces || this.globalProduces;
-        var thisSecurity = operation.security || this.globalSecurity;
+        let thisParams = this.mergeParamLists(paramsFromPathItem, operation.parameters);
+        let thisConsumes = operation.consumes || this.globalConsumes;
+        let thisProduces = operation.produces || this.globalProduces;
+        let thisSecurity = operation.security || this.globalSecurity;
 
         if (thisProduces && thisProduces.length > 0) {
             _.defaults(request, {header: []});
@@ -528,7 +527,7 @@ var Swagger2Postman = jsface.Class({ // eslint-disable-line
         }
 
         // set data and headers
-        for (var param in thisParams) {
+        for (let param in thisParams) {
             this.logger('Processing param: ' + JSON.stringify(param));
             request = this.processParameter(thisParams[param], thisConsumes, request);
         }
@@ -537,7 +536,7 @@ var Swagger2Postman = jsface.Class({ // eslint-disable-line
 
         if (this.options.excludeTests === false) {
             this.logger('Adding Test for: ' + path);
-            var tests;
+            let tests;
             if (operation[META_KEY]) {
                 if (operation[META_KEY].hasOwnProperty('tests')) {
                     tests = operation[META_KEY].tests;
@@ -556,20 +555,20 @@ var Swagger2Postman = jsface.Class({ // eslint-disable-line
         }
 
         return item;
-    },
+    }
 
-    buildItemListFromPath: function (path, pathItem) {
+    buildItemListFromPath(path, pathItem) {
         var self = this;
         var items = [];
         // replace path variables {petId} with :petId
         var lpath = path.replace(/{/g, ':').replace(/}/g, '');
 
-        var supportedVerbs = ['get', 'put', 'post', 'patch', 'delete', 'head', 'options'];
+        const supportedVerbs = ['get', 'put', 'post', 'patch', 'delete', 'head', 'options'];
 
         _.forEach(supportedVerbs, function (verb) {
             if (pathItem[verb]) {
                 self.logger('Processing operation ' + verb.toUpperCase() + ' ' + path);
-                var item = self.buildItemFromOperation(lpath, verb.toUpperCase(), pathItem[verb], pathItem.parameters);
+                let item = self.buildItemFromOperation(lpath, verb.toUpperCase(), pathItem[verb], pathItem.parameters);
                 if (item) {
                     items.push(item);
                 }
@@ -577,16 +576,16 @@ var Swagger2Postman = jsface.Class({ // eslint-disable-line
         });
 
         return items;
-    },
+    }
 
-    handlePaths: function (paths) {
+    handlePaths(paths) {
         var folders = {};
         var items = [];
         // Add a folder for each path
-        for (var path in paths) {
-            var itemList = this.buildItemListFromPath(path, paths[path]);
+        for (let path in paths) {
+            let itemList = this.buildItemListFromPath(path, paths[path]);
             if (itemList && itemList.length > 0) {
-                var folderName = this.getFolderNameForPath(path);
+                let folderName = this.getFolderNameForPath(path);
                 if (folderName) {
                     this.logger('Adding path item to folder: ' + folderName);
                     if (folders.hasOwnProperty(folderName)) {
@@ -606,8 +605,8 @@ var Swagger2Postman = jsface.Class({ // eslint-disable-line
         }
         this.collectionJson.item = items.concat(_.values(folders));
         this.collectionJson.item.sort(function (a, b) {
-            var nameA = (a.name || '').toUpperCase();
-            var nameB = b.name.toUpperCase();
+            let nameA = (a.name || '').toUpperCase();
+            let nameB = b.name.toUpperCase();
             if (nameA < nameB) {
                 return -1;
             }
@@ -619,9 +618,9 @@ var Swagger2Postman = jsface.Class({ // eslint-disable-line
             /* istanbul ignore next */
             return 0;
         });
-    },
+    }
 
-    convert: function (spec, cb) {
+    convert(spec, cb) {
         var self = this;
 
         this.logger('using options: ' + JSON.stringify(this.options, null, 4));
@@ -677,7 +676,7 @@ var Swagger2Postman = jsface.Class({ // eslint-disable-line
 
                 if (!self.options.disableCollectionValidation) {
                     console.time('## Collection Validated in');
-                    var valid = self.validate(self.collectionJson);
+                    let valid = self.validate(self.collectionJson);
                     console.timeEnd('## Collection Validated in');
                     /* istanbul ignore else */
                     if (valid) {
@@ -691,8 +690,8 @@ var Swagger2Postman = jsface.Class({ // eslint-disable-line
             });
 
         });
-    },
+    }
 
-});
+}
 
 module.exports = Swagger2Postman;

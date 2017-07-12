@@ -19,14 +19,13 @@ function done(code) {
  * @param options
  */
 function writeJSON(data, filepath, options) {
-    var json;
-    var writeFlag = {flag: 'wx'};
+    let writeFlag = {flag: 'wx'};
     if (options.overwrite) {
         writeFlag = {flag: 'w'};
     }
 
     try {
-        json = JSON.stringify(data, null, options.compact ? 0 : 4);
+        let json = JSON.stringify(data, null, options.compact ? 0 : 4);
         fs.writeFileSync(filepath, json, writeFlag);
     } catch (e) {
         console.error('Could not write file %s', filepath, e);
@@ -64,7 +63,7 @@ program
             done(1);
         }
 
-        var opts = {
+        let opts = {
             excludeQueryParams: options.excludeQueryParams,
             excludeOptionalQueryParams: options.excludeOptionalQueryParams,
             excludeBodyTemplate: options.excludeBodyTemplate,
@@ -75,7 +74,7 @@ program
             envfile: options.envfile,
         };
         console.time('# Conversion Completed in');
-        var converter = new Swagger2Postman(opts);
+        let converter = new Swagger2Postman(opts);
         converter.setLogger(console.log);
 
         converter.convert(options.input, function (err, result) {
