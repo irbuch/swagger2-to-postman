@@ -1,7 +1,7 @@
 'use strict';
 var _ = require('lodash');
 var expect = require('expect.js');
-var Swagger2Postman = require('../convert.js');
+var Swagger2Postman = require('../lib');
 var fs = require('fs');
 var path = require('path');
 var nock = require('nock');

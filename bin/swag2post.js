@@ -3,7 +3,7 @@
 'use strict';
 var program = require('commander');
 var fs = require('fs');
-var Swagger2Postman = require('../convert');
+var Swagger2Postman = require('../lib');
 
 function done(code) {
     process.exit(code); // eslint-disable-line

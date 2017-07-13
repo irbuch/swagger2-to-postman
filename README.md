@@ -85,25 +85,26 @@ swag2post convert -i swagger.yaml -o petstore_collection.json
 
 ## As library
 
-convert.js provides a class - `Swagger2Postman`.
+lib/index.js provides a class - `Swagger2Postman`.
 
 Initialize class:
 
 ```javascript
-    var swaggerConverter = new Swagger2Postman();
+    var Swagger2Postman = require('swagger2-to-postman');
+    var converter = new Swagger2Postman();
 ```
 
 Optionally, set a logger:
 
 ```javascript
-    swaggerConverter.setLogger(console.log);
+    converter.setLogger(console.log);
 ```
 
 Convert your Swagger 2.0 API (json, yaml, and remote URL):
 
 ```javascript
     var apiLocation = 'api.yaml';
-    swaggerConverter.convert(apiLocation, function (err, collection) {
+    converter.convert(apiLocation, function (err, collection) {
         if (err) {
             console.error('failed to convert: ' + err);
             return;
@@ -127,7 +128,7 @@ var options = {
   envfile: 'my-example.json',
 };
 
-var swaggerConverter = new Swagger2Postman(options);
+var converter = new Swagger2Postman(options);
 ```
 
 ### Valid Options
@@ -201,3 +202,5 @@ x-postman-meta:
 
 
 ## TODO
+
+- Support `Promise` as well as callback
