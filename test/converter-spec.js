@@ -256,7 +256,7 @@ describe('converter tests', function () {
             let converter = new Swagger2Postman();
             converter.setLogger(_logger);
             converter.convert(samplePath, function (err, result) {
-                expect(logs).to.contain('load schema request failed: 404');
+                expect(logs).to.contain('failed to load schema: load schema request failed: 404');
                 expect(server.isDone()).to.be.ok();
                 expect(result).to.be.ok();
                 done(err);
@@ -281,7 +281,8 @@ describe('converter tests', function () {
             converter.setLogger(_logger);
             converter.convert(samplePath, function (err, result) {
                 expect(logs).to.contain(
-                    'load schema request failed: Expected application/json but received application/xml');
+                    'failed to load schema: load schema request failed: ' +
+                    'Expected application/json but received application/xml');
                 expect(server.isDone()).to.be.ok();
                 expect(result).to.be.ok();
                 done(err);
@@ -305,7 +306,7 @@ describe('converter tests', function () {
             let converter = new Swagger2Postman();
             converter.setLogger(_logger);
             converter.convert(samplePath, function (err, result) {
-                expect(logs).to.contain('schema not json: Unexpected token } in JSON at position 15');
+                expect(logs).to.contain('failed to load schema: Unexpected token } in JSON at position 15');
                 expect(server.isDone()).to.be.ok();
                 expect(result).to.be.ok();
                 done(err);
@@ -326,7 +327,7 @@ describe('converter tests', function () {
             let converter = new Swagger2Postman();
             converter.setLogger(_logger);
             converter.convert(samplePath, function (err, result) {
-                expect(logs).to.contain('failed to load schema; validation disabled. Error: unexpected error');
+                expect(logs).to.contain('failed to load schema: unexpected error');
                 expect(server.isDone()).to.be.ok();
                 expect(result).to.be.ok();
                 done(err);
