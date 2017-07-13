@@ -80,12 +80,7 @@ program
         let converter = new Swagger2Postman(opts);
         converter.setLogger(console.log);
 
-        converter.convert(options.input, function (err, result) {
-            if (err) {
-                console.error('unable to convert specification: ' + err);
-                console.timeEnd('# Conversion Completed in');
-                return;
-            }
+        converter.convert(options.input).then(function (result) {
             console.log('writing collection...');
             if (writeJSON(result, options.output, options)) {
                 console.log('collection stored');
@@ -96,6 +91,9 @@ program
                 writeJSON(converter.envfile, options.envfile, options);
             }
 
+        }).catch(function (err) {
+            console.error('unable to convert specification: ' + err);
+            console.timeEnd('# Conversion Completed in');
         });
 
     });
@@ -115,12 +113,9 @@ program
         }
 
         console.time('# Postman Schema Loaded in');
-        validator.create(function (err, validate) {
+        validator.create().then(function (validate) {
             console.timeEnd('# Postman Schema Loaded in');
-            if (err) {
-                console.error('failed to load schema: ' + err.message);
-                return;
-            }
+
             console.time('# Collection Validated in');
             let valid = validate(content);
             console.timeEnd('# Collection Validated in');
@@ -129,6 +124,8 @@ program
             } else {
                 console.error(JSON.stringify(validate.errors));
             }
+        }).catch(function (err) {
+            console.error('failed to load schema: ' + err.message);
         });
 
     });

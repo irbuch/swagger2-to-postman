@@ -16,6 +16,7 @@
   },
   "dependencies": {
     "ajv": "^5.2.0",
+    "call-me-maybe": "^1.0.1",
     "commander": "^2.11.0",
     "lodash": "^4.17.0",
     "swagger-parser": "^3.4.1",

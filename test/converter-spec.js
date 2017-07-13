@@ -21,6 +21,18 @@ describe('converter tests', function () {
         return null;
     });
 
+    it('must read values from the "x-postman-meta" key - auth (promise)', function (done) {
+        let samplePath = path.join(__dirname, 'data', 'swagger_aws.json');
+        let converter = new Swagger2Postman();
+        converter.convert(samplePath).then(function (result) {
+            expect(result.item[0].item[0].request).to.have.key('auth');
+            expect(result.item[0].item[0].request.auth).to.have.key('awsv4');
+            done();
+        }).catch(function (err) {
+            done(err);
+        });
+    });
+
     it('must read values from the "x-postman-meta" key - auth', function (done) {
         let samplePath = path.join(__dirname, 'data', 'swagger_aws.json');
         let converter = new Swagger2Postman();
@@ -56,6 +68,18 @@ describe('converter tests', function () {
         converter.convert(samplePath, function (err, result) {
             expect(err).to.be.ok();
             expect(result).not.to.be.ok();
+            done();
+        });
+    });
+
+    it('should return an error on invalid api spec (promise)', function (done) {
+        let samplePath = path.join(__dirname, 'invalid', 'no-paths.json');
+        let converter = new Swagger2Postman();
+        converter.convert(samplePath).then(function (result) {
+            expect(result).not.to.be.ok();
+            done();
+        }).catch(function (err) {
+            expect(err).to.be.ok();
             done();
         });
     });

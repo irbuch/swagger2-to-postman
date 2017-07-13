@@ -24,6 +24,7 @@ Converts [Swagger 2.0](https://swagger.io/specification/) API specification to [
 * Optionally generates example body based on provided definitions.
 * Optionally generates tests to validate responses and associated payload of response.
 * Works as CLI or library.
+* Library works using native Promises or callback.
 
 
 ## CLI
@@ -116,6 +117,8 @@ Optionally, set a logger:
 
 Convert your Swagger 2.0 API (json, yaml, and remote URL):
 
+**callback**
+
 ```javascript
     var apiLocation = 'api.yaml';
     converter.convert(apiLocation, function (err, collection) {
@@ -124,6 +127,17 @@ Convert your Swagger 2.0 API (json, yaml, and remote URL):
             return;
         }
         console.log(JSON.stringify(collection, null, 4));
+    });
+```
+
+**promise**
+
+```javascript
+    var apiLocation = 'api.yaml';
+    converter.convert(apiLocation).then(function (collection) {
+        console.log(JSON.stringify(collection, null, 4));
+    }).catch(function (err) {
+        console.error('failed to convert: ' + err);
     });
 ```
 
@@ -214,5 +228,3 @@ x-postman-meta:
 
 
 ## TODO
-
-- Support `Promise` as well as callback
