@@ -4,7 +4,6 @@ var expect = require('expect.js');
 var Swagger2Postman = require('../lib');
 var fs = require('fs');
 var path = require('path');
-var nock = require('nock');
 
 /* global describe, it */
 describe('converter tests', function () {
@@ -236,102 +235,4 @@ describe('converter tests', function () {
         });
     });
 
-    describe('schema load tests', function () {
-
-        before(function () {
-            nock.cleanAll.bind(nock);
-        });
-
-        it('should disable collection validation if https.get status code != 200', function (done) {
-            let server = nock('https://schema.getpostman.com')
-                .get('/json/collection/v2.0.0/collection.json')
-                .reply(404);
-
-            let logs = [];
-            function _logger(msg) {
-                logs.push(msg);
-            }
-
-            let samplePath = path.join(__dirname, 'data', 'swagger2.json');
-            let converter = new Swagger2Postman();
-            converter.setLogger(_logger);
-            converter.convert(samplePath, function (err, result) {
-                expect(logs).to.contain('failed to load schema: load schema request failed: 404');
-                expect(server.isDone()).to.be.ok();
-                expect(result).to.be.ok();
-                done(err);
-            });
-        });
-
-        it('should disable collection validation if https.get content-type not application/json', function (done) {
-            let server = nock('https://schema.getpostman.com')
-                .defaultReplyHeaders({
-                    'Content-Type': 'application/xml'
-                })
-                .get('/json/collection/v2.0.0/collection.json')
-                .reply(200);
-
-            let logs = [];
-            function _logger(msg) {
-                logs.push(msg);
-            }
-
-            let samplePath = path.join(__dirname, 'data', 'swagger2.json');
-            let converter = new Swagger2Postman();
-            converter.setLogger(_logger);
-            converter.convert(samplePath, function (err, result) {
-                expect(logs).to.contain(
-                    'failed to load schema: load schema request failed: ' +
-                    'Expected application/json but received application/xml');
-                expect(server.isDone()).to.be.ok();
-                expect(result).to.be.ok();
-                done(err);
-            });
-        });
-
-        it('should disable collection validation if https.get payload not valid JSON', function (done) {
-            let server = nock('https://schema.getpostman.com')
-                .defaultReplyHeaders({
-                    'Content-Type': 'application/json'
-                })
-                .get('/json/collection/v2.0.0/collection.json')
-                .reply(200, '{"name": "abc",}');
-
-            let logs = [];
-            function _logger(msg) {
-                logs.push(msg);
-            }
-
-            let samplePath = path.join(__dirname, 'data', 'swagger2.json');
-            let converter = new Swagger2Postman();
-            converter.setLogger(_logger);
-            converter.convert(samplePath, function (err, result) {
-                expect(logs).to.contain('failed to load schema: Unexpected token } in JSON at position 15');
-                expect(server.isDone()).to.be.ok();
-                expect(result).to.be.ok();
-                done(err);
-            });
-        });
-
-        it('should disable collection validation if https.get fails', function (done) {
-            let server = nock('https://schema.getpostman.com')
-                .get('/json/collection/v2.0.0/collection.json')
-                .replyWithError('unexpected error');
-
-            let logs = [];
-            function _logger(msg) {
-                logs.push(msg);
-            }
-
-            let samplePath = path.join(__dirname, 'data', 'swagger2.json');
-            let converter = new Swagger2Postman();
-            converter.setLogger(_logger);
-            converter.convert(samplePath, function (err, result) {
-                expect(logs).to.contain('failed to load schema: unexpected error');
-                expect(server.isDone()).to.be.ok();
-                expect(result).to.be.ok();
-                done(err);
-            });
-        });
-    });
 });

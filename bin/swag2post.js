@@ -4,6 +4,7 @@
 var program = require('commander');
 var fs = require('fs');
 var Swagger2Postman = require('../lib');
+var validator = require('../lib').validator;
 
 function done(code) {
     process.exit(code); // eslint-disable-line
@@ -49,7 +50,6 @@ program
     .option('--exclude-optional-query-params', 'Exclude optional query parameters', false)
     .option('--exclude-body-template', 'Exclude body template', false)
     .option('--exclude-tests', 'Exclude tests of responses', false)
-    .option('--disable-collection-validation', 'Disable validation of the generated Collection', false)
     .option('-t, --tag-filter <tag>', 'Include operations with specific tag', null)
     .option('--host <hostname>', 'Name of API host to use. Overrides value within provided API specification.', null)
     .option('--default-security', 'Name of the security options to use by default. Default: first listed.', null)
@@ -70,7 +70,6 @@ program
             excludeOptionalQueryParams: options.excludeOptionalQueryParams,
             excludeBodyTemplate: options.excludeBodyTemplate,
             excludeTests: options.excludeTests,
-            disableCollectionValidation: options.disableCollectionValidation,
             tagFilter: options.tagFilter,
             host: options.host,
             defaultSecurity: options.defaultSecurity,
@@ -97,6 +96,39 @@ program
                 writeJSON(converter.envfile, options.envfile, options);
             }
 
+        });
+
+    });
+
+program
+    .command('validate')
+    .description('Validate a Postman V2 Collection')
+    .usage('<file>')
+    .action(function (file) {
+
+        let content;
+        try {
+            content = JSON.parse(fs.readFileSync(file));
+        } catch (e) {
+            console.error('failed to read file: ' + e.message);
+            done(1);
+        }
+
+        console.time('# Postman Schema Loaded in');
+        validator.create(function (err, validate) {
+            console.timeEnd('# Postman Schema Loaded in');
+            if (err) {
+                console.error('failed to load schema: ' + err.message);
+                return;
+            }
+            console.time('# Collection Validated in');
+            let valid = validate(content);
+            console.timeEnd('# Collection Validated in');
+            if (valid) {
+                console.log('No issues found.');
+            } else {
+                console.error(JSON.stringify(validate.errors));
+            }
         });
 
     });

@@ -41,6 +41,7 @@ Options:
 Commands:
 
   convert [options]   Convert Swagger v2 API specification to Postman v2 Collection
+  validate            Validate a Postman V2 Collection
 ```
 
 ```
@@ -59,13 +60,23 @@ Options:
   --exclude-optional-query-params  Exclude optional query parameters
   --exclude-body-template          Exclude body template
   --exclude-tests                  Exclude tests of responses
-  --disable-collection-validation  Disable validation of the generated Collection
   -t, --tag-filter <tag>           Include operations with specific tag
   --host <hostname>                Name of API host to use. Overrides value within provided API specification.
   --default-security               Name of the security options to use by default. Default: first listed.
   --default-produces-type          Name of the produces option to use by default. Default: first listed.
   --envfile <path>                 Target path for Postman Environment (json)
   -h, --help                       output usage information
+```
+
+```
+Usage: validate <file>
+
+Validate a Postman V2 Collection
+
+
+Options:
+
+  -h, --help  output usage information
 ```
 
 ### Examples
@@ -82,6 +93,9 @@ swag2post convert -i swagger.json -o petstore_collection.json
 swag2post convert -i swagger.yaml -o petstore_collection.json
 ```
 
+```bash
+swag2post validate petstore_collection.json
+```
 
 ## As library
 
@@ -122,7 +136,6 @@ var options = {
   excludeOptionalQueryParams: true,
   excludeBodyTemplate: true,
   excludeTests: true,
-  disableCollectionValidation: false,
   tagFilter: 'SampleTag',
   host: 'my.example.com',
   envfile: 'my-example.json',
@@ -137,7 +150,6 @@ var converter = new Swagger2Postman(options);
 * `excludeOptionalQueryParams` - (default *false*) Exclude optional query string parameters in the request URL.
 * `excludeBodyTemplate` - (default *false*) Exclude example body when body parameter defined and `consumes` includes `application/.*json`.
 * `excludeTests` - (default *false*) Exclude test(s) that validate the defined responses for an operation.
-* `disableCollectionValidation` - (default *false*) Disable downloading Postman Collection Schema and validating the generated collection.
 * `tagFilter` - (default *null*) Filter resources that have a tag that matches this value.
 * `host` - (default *null*) Name of the API host. Overrides the value within specification.
 * `defaultSecurity` - (default *null*) Name of the security options to use by default. Default: first listed.
