@@ -1,9 +1,9 @@
 'use strict';
-var _ = require('lodash');
-var expect = require('expect.js');
-var Swagger2Postman = require('../lib');
-var fs = require('fs');
-var path = require('path');
+const _ = require('lodash');
+const expect = require('expect.js');
+const Swagger2Postman = require('../');
+const fs = require('fs');
+const path = require('path');
 
 /* global describe, it */
 describe('converter tests', function () {

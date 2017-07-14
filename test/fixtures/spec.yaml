@@ -1,0 +1,13 @@
+swagger: '2.0'
+info:
+  title: Example API
+  version: '1.0.0'
+
+'$ref': 'include.yaml'
+
+paths:
+  /:
+    get:
+      responses:
+        default:
+          description: example

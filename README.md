@@ -23,6 +23,7 @@ Converts [Swagger 2.0](https://swagger.io/specification/) API specification to [
 * Validates generated Postman Collection aligns to Collection v2 schema.
 * Optionally generates example body based on provided definitions.
 * Optionally generates tests to validate responses and associated payload of response.
+* Bundle multiple Swagger files into one combined Swagger file
 * Works as CLI or library.
 * Library works using native Promises or callback.
 
@@ -41,8 +42,9 @@ Options:
 
 Commands:
 
-  convert [options]   Convert Swagger v2 API specification to Postman v2 Collection
-  validate            Validate a Postman V2 Collection
+  convert [options]            Convert Swagger v2 API specification to Postman v2 Collection
+  bundle [options] <filename>  Bundles a multi-file Swagger API into a single file
+  validate                     Validate a Postman V2 Collection
 ```
 
 ```
@@ -53,8 +55,8 @@ Convert Swagger v2 API specification to Postman v2 Collection
 
 Options:
 
-  -i, --input <location>           URL or file path of the Swagger specification
-  -o, --output <path>              Target file path for Postman Collection
+  -i, --input <location>           (REQUIRED) URL or file path of the Swagger specification
+  -o, --output <path>              (REQUIRED) Target file path for Postman Collection
   -w, --overwrite                  Overwrite the output file if exists
   -c, --compact                    Compact the output
   --exclude-query-params           Exclude query parameters
@@ -67,6 +69,20 @@ Options:
   --default-produces-type          Name of the produces option to use by default. Default: first listed.
   --envfile <path>                 Target path for Postman Environment (json)
   -h, --help                       output usage information
+```
+
+```
+Usage: bundle [options] <filename>
+
+Bundles a multi-file Swagger API into a single file
+
+
+Options:
+
+  -o, --output <filename>  Target file path for bundled file. Default: bundle-<filename>
+  -w, --overwrite          Overwrite the output file if exists
+  -c, --compact            Compact the output
+  -h, --help               output usage information
 ```
 
 ```
@@ -92,6 +108,10 @@ swag2post convert -i swagger.json -o petstore_collection.json
 
 ```bash
 swag2post convert -i swagger.yaml -o petstore_collection.json
+```
+
+```bash
+swag2post bundle petstore.json
 ```
 
 ```bash

@@ -1,38 +1,14 @@
 #!/usr/bin/env node
 /* eslint-disable no-console */
 'use strict';
-var program = require('commander');
-var fs = require('fs');
-var Swagger2Postman = require('../lib');
-var validator = require('../lib').validator;
+const program = require('commander');
+const Swagger2Postman = require('../');
+const bundler = require('../').bundler;
+const validator = require('../').validator;
+const utils = require('../lib/utils');
 
 function done(code) {
     process.exit(code); // eslint-disable-line
-}
-
-/**
- * Writes a JSON blob to the given path.
- * If ``options.compact`` is true, output will be pretty printed. (Default false)
- * If ``options.overwrite`` is false, output file will be overwritten (Default true)
- *
- * @param data
- * @param filepath
- * @param options
- */
-function writeJSON(data, filepath, options) {
-    let writeFlag = {flag: 'wx'};
-    if (options.overwrite) {
-        writeFlag = {flag: 'w'};
-    }
-
-    try {
-        let json = JSON.stringify(data, null, options.compact ? 0 : 4);
-        fs.writeFileSync(filepath, json, writeFlag);
-    } catch (e) {
-        console.error('Could not write file %s', filepath, e);
-        return false;
-    }
-    return true;
 }
 
 program
@@ -42,8 +18,8 @@ program
 program
     .command('convert')
     .description('Convert Swagger v2 API specification to Postman v2 Collection')
-    .option('-i, --input <location>', 'URL or file path of the Swagger specification')
-    .option('-o, --output <path>', 'Target file path for Postman Collection')
+    .option('-i, --input <location>', '(REQUIRED) URL or file path of the Swagger specification')
+    .option('-o, --output <path>', '(REQUIRED) Target file path for Postman Collection')
     .option('-w, --overwrite', 'Overwrite the output file if exists', false)
     .option('-c, --compact', 'Compact the output', false)
     .option('--exclude-query-params', 'Exclude query parameters', false)
@@ -82,13 +58,13 @@ program
 
         converter.convert(options.input).then(function (result) {
             console.log('writing collection...');
-            if (writeJSON(result, options.output, options)) {
-                console.log('collection stored');
-            }
+            utils.writeFile(result, options.output, options);
+            console.log('collection stored');
+
             console.timeEnd('# Conversion Completed in');
 
             if (options.envfile) {
-                writeJSON(converter.envfile, options.envfile, options);
+                utils.writeFile(converter.envfile, options.envfile, options);
             }
 
         }).catch(function (err) {
@@ -99,6 +75,21 @@ program
     });
 
 program
+    .command('bundle <filename>')
+    .description('Bundles a multi-file Swagger API into a single file')
+    .option('-o, --output <filename>', 'Target file path for bundled file. Default: bundle-<filename>')
+    .option('-w, --overwrite', 'Overwrite the output file if exists', false)
+    .option('-c, --compact', 'Compact the output', false)
+    .action(function (filename, options) {
+        bundler.bundle(filename, options).then(function (/* bundle */) {
+            console.log('bundle created %s from %s', options.output, filename);
+        }).catch(function (err) {
+            console.error(err);
+            done(1);
+        });
+    });
+
+program
     .command('validate')
     .description('Validate a Postman V2 Collection')
     .usage('<file>')
@@ -106,7 +97,7 @@ program
 
         let content;
         try {
-            content = JSON.parse(fs.readFileSync(file));
+            content = utils.readJSON(file);
         } catch (e) {
             console.error('failed to read file: ' + e.message);
             done(1);

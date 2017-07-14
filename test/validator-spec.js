@@ -1,7 +1,7 @@
 'use strict';
-var expect = require('expect.js');
-var validator = require('../lib').validator;
-var nock = require('nock');
+const expect = require('expect.js');
+const validator = require('../').validator;
+const nock = require('nock');
 
 describe('validator tests', function () {
 
