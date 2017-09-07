@@ -2,7 +2,10 @@
   "name": "swagger2-to-postman",
   "version": "2.0.0",
   "description": "A module to convert swagger 2.0 JSONs to Postman Collection Format v2",
-  "main": "./bin/swag2post.js",
+  "main": "./lib/index.js",
+  "bin": {
+    "swag2post": "./bin/swag2post.js"
+  },
   "scripts": {
     "test": "mocha test/*-spec.js",
     "coverage": "istanbul cover _mocha -- test/**",
